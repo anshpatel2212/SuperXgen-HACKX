@@ -1,10 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/owner/stat-card"
-import { LoadingSkeleton } from "@/components/shared/loading-skeleton"
 import { formatPrice } from "@/lib/utils"
 import {
   AreaChart,
@@ -26,19 +24,16 @@ import {
   CalendarDays,
   Users,
   Store,
-  TrendingUp,
   Download,
-  Globe,
-  Scissors,
 } from "lucide-react"
 
 const bookingsData = Array.from({ length: 30 }).map((_, i) => {
-  const d = new Date()
+  const d = new Date("2026-06-22T12:00:00Z")
   d.setDate(d.getDate() - (29 - i))
   return {
     date: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-    bookings: Math.floor(Math.random() * 50) + 10,
-    revenue: Math.floor(Math.random() * 80000) + 20000,
+    bookings: 14 + ((i * 11) % 37),
+    revenue: 26000 + ((i * 17011) % 65000),
   }
 })
 
@@ -69,33 +64,22 @@ const PIE_COLORS = ["#f8b4c8", "#d4c5f0", "#f43f5e", "#a78bfa", "#fb923c", "#34d
 
 const newUsersData = Array.from({ length: 12 }).map((_, i) => ({
   month: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][i],
-  users: Math.floor(Math.random() * 200) + 50,
+  users: 62 + ((i * 43) % 151),
 }))
 
 export default function AdminAnalytics() {
-  const [isLoading] = useState(false)
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-semibold">Platform Analytics</h1>
-        <LoadingSkeleton type="chart" />
-      </div>
-    )
-  }
-
   return (
     <div className="animate-fade-in space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Platform Analytics</h1>
           <p className="text-sm text-muted-foreground">
-            Full platform performance metrics
+            Seeded platform scenario for the hackathon demo
           </p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" disabled title="Reports require durable production analytics">
           <Download className="size-3.5" />
-          Download Report
+          Export after launch
         </Button>
       </div>
 
@@ -272,9 +256,15 @@ export default function AdminAnalytics() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" size="sm" className="w-full gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1"
+              disabled
+              title="Reports require durable production analytics"
+            >
               <Download className="size-3.5" />
-              Download Full Report
+              Export unavailable in demo
             </Button>
           </CardFooter>
         </Card>

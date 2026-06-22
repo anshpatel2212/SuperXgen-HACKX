@@ -1,50 +1,48 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { redirect } from "next/navigation"
-import { getOwnerSalons, getSalonOffers, createOffer, updateOffer, deleteOffer } from "@/lib/data-service"
-import type { Salon, Offer } from "@/types"
+import { useDemoOffers } from "@/lib/demo-offers"
+import type { Offer } from "@/types"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
   Plus, Tag, Trash2, Edit3, Check, X, Loader2, Percent, IndianRupee
 } from "lucide-react"
+import { SALONS } from "@/data"
+
+const DEMO_CURRENT_DATE = "2026-06-22"
+const EMPTY_FORM = {
+  title: "",
+  description: "",
+  discount_type: "percentage" as Offer["discount_type"],
+  discount_value: "",
+  min_purchase: "0",
+  max_discount: "0",
+  coupon_code: "",
+  valid_from: "",
+  valid_till: "",
+}
 
 export default function OwnerOffersPage() {
   const { user, isLoading } = useAuth()
-  const [salons, setSalons] = useState<Salon[]>([])
-  const [selectedSalonId, setSelectedSalonId] = useState<string>("")
-  const [offers, setOffers] = useState<Offer[]>([])
+  const salons = SALONS.filter((salon) => salon.owner_id === user?.id)
+  const [selectedSalonOverride, setSelectedSalonOverride] = useState("")
+  const selectedSalonId = selectedSalonOverride || salons[0]?.id || ""
+  const { offers, createOffer, updateOffer, deleteOffer } = useDemoOffers(selectedSalonId)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({
-    title: "", description: "", discount_type: "percentage" as "percentage" | "fixed",
-    discount_value: "", min_purchase: "0", max_discount: "0",
-    coupon_code: "", valid_from: "", valid_till: "",
-  })
-
-  useEffect(() => {
-    if (user && user.role === "owner") {
-      const ownerSalons = getOwnerSalons(user.id)
-      setSalons(ownerSalons)
-      if (ownerSalons.length > 0) setSelectedSalonId(ownerSalons[0].id)
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (selectedSalonId) setOffers(getSalonOffers(selectedSalonId))
-  }, [selectedSalonId])
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [formError, setFormError] = useState("")
 
   if (isLoading) return null
-  if (!user) redirect("/login")
-  if (user.role !== "owner") redirect("/")
 
   const resetForm = () => {
-    setForm({ title: "", description: "", discount_type: "percentage", discount_value: "", min_purchase: "0", max_discount: "0", coupon_code: "", valid_from: "", valid_till: "" })
+    setForm(EMPTY_FORM)
+    setFormError("")
     setEditingId(null)
     setShowForm(false)
   }
@@ -61,25 +59,37 @@ export default function OwnerOffersPage() {
   }
 
   const handleSave = async () => {
-    if (!selectedSalonId || !form.title || !form.discount_value || !form.valid_from || !form.valid_till) return
+    const discountValue = Number(form.discount_value)
+    if (!selectedSalonId || !form.title.trim() || !Number.isFinite(discountValue) || discountValue <= 0) {
+      setFormError("Enter a title and a discount value greater than zero.")
+      return
+    }
+    if (!form.valid_from || !form.valid_till || form.valid_from > form.valid_till) {
+      setFormError("Choose a valid date range.")
+      return
+    }
+
     setSaving(true)
     try {
+      const data = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        discount_type: form.discount_type,
+        discount_value: discountValue,
+        min_purchase: Number(form.min_purchase) || 0,
+        max_discount: Number(form.max_discount) || 0,
+        coupon_code: form.coupon_code.trim().toUpperCase(),
+        valid_from: form.valid_from,
+        valid_till: form.valid_till,
+      }
       if (editingId) {
-        updateOffer(editingId, {
-          title: form.title, description: form.description, discount_type: form.discount_type,
-          discount_value: parseInt(form.discount_value) || 0, min_purchase: parseInt(form.min_purchase) || 0,
-          max_discount: parseInt(form.max_discount) || 0, coupon_code: form.coupon_code,
-          valid_from: form.valid_from, valid_till: form.valid_till,
-        })
+        updateOffer(editingId, data)
       } else {
         createOffer({
-          salon_id: selectedSalonId, title: form.title, description: form.description,
-          discount_type: form.discount_type, discount_value: parseInt(form.discount_value) || 0,
-          min_purchase: parseInt(form.min_purchase) || 0, max_discount: parseInt(form.max_discount) || 0,
-          coupon_code: form.coupon_code, valid_from: form.valid_from, valid_till: form.valid_till,
+          salon_id: selectedSalonId,
+          ...data,
         })
       }
-      setOffers(getSalonOffers(selectedSalonId))
       resetForm()
     } finally {
       setSaving(false)
@@ -87,16 +97,15 @@ export default function OwnerOffersPage() {
   }
 
   const handleDelete = (id: string) => {
+    if (!window.confirm("Delete this offer from the demo repository?")) return
     deleteOffer(id)
-    setOffers(getSalonOffers(selectedSalonId))
   }
 
   const toggleActive = (offer: Offer) => {
     updateOffer(offer.id, { is_active: !offer.is_active })
-    setOffers(getSalonOffers(selectedSalonId))
   }
 
-  const isExpired = (validTill: string) => new Date(validTill) < new Date()
+  const isExpired = (validTill: string) => validTill < DEMO_CURRENT_DATE
 
   return (
     <div className="space-y-6">
@@ -109,7 +118,7 @@ export default function OwnerOffersPage() {
           <select
             className="flex h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm"
             value={selectedSalonId}
-            onChange={e => setSelectedSalonId(e.target.value)}
+            onChange={e => setSelectedSalonOverride(e.target.value)}
           >
             {salons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -132,7 +141,7 @@ export default function OwnerOffersPage() {
                 <select
                   className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                   value={form.discount_type}
-                  onChange={e => setForm(p => ({ ...p, discount_type: e.target.value as any }))}
+                  onChange={e => setForm(p => ({ ...p, discount_type: e.target.value as Offer["discount_type"] }))}
                 >
                   <option value="percentage">Percentage (%)</option>
                   <option value="fixed">Fixed Amount (₹)</option>
@@ -167,6 +176,7 @@ export default function OwnerOffersPage() {
                 <Input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe this offer..." />
               </div>
             </div>
+            {formError && <p className="mt-3 text-sm text-red-600">{formError}</p>}
             <div className="flex gap-2 mt-4">
               <Button onClick={handleSave} disabled={saving} className="bg-pink-600 hover:bg-pink-700">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -227,6 +237,9 @@ export default function OwnerOffersPage() {
           ))}
         </div>
       )}
+      <p className="text-center text-xs text-gray-400">
+        Offer changes persist in this browser for the hackathon demo.
+      </p>
     </div>
   )
 }

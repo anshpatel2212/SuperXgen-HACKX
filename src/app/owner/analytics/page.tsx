@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/owner/stat-card"
@@ -28,20 +29,18 @@ import {
   Star,
   Scissors,
   Download,
-  TrendingUp,
-  ArrowUpDown,
   Store,
 } from "lucide-react"
 import { SALONS } from "@/data"
 import { useAuth } from "@/lib/auth-context"
 
 const revenueData = Array.from({ length: 30 }).map((_, i) => {
-  const d = new Date()
+  const d = new Date("2026-06-22T12:00:00Z")
   d.setDate(d.getDate() - (29 - i))
   return {
     date: d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
-    revenue: Math.floor(Math.random() * 20000) + 5000,
-    bookings: Math.floor(Math.random() * 15) + 2,
+    revenue: 6500 + ((i * 7919) % 13000),
+    bookings: 3 + ((i * 7) % 12),
   }
 })
 
@@ -75,16 +74,16 @@ const PIE_COLORS = ["#f8b4c8", "#d4c5f0", "#f43f5e", "#a78bfa", "#fb923c", "#34d
 const dateRanges = [
   { label: "7d", value: "7" },
   { label: "30d", value: "30" },
-  { label: "90d", value: "90" },
-  { label: "Custom", value: "custom" },
 ]
 
 export default function OwnerAnalytics() {
   const { user, isLoading: authLoading } = useAuth()
+  const router = useRouter()
   const [selectedRange, setSelectedRange] = useState("30")
 
   const ownerSalons = SALONS.filter((s) => s.owner_id === (user?.id || ""))
   const hasSalons = ownerSalons.length > 0
+  const visibleRevenueData = revenueData.slice(-Number(selectedRange))
 
   if (authLoading) {
     return (
@@ -107,7 +106,7 @@ export default function OwnerAnalytics() {
         title="No data yet"
         description="Create a salon to see your analytics and performance metrics"
         actionLabel="Create Salon"
-        onAction={() => {}}
+        onAction={() => router.push("/owner/onboarding")}
       />
     )
   }
@@ -118,7 +117,7 @@ export default function OwnerAnalytics() {
         <div>
           <h1 className="text-xl font-semibold">Analytics</h1>
           <p className="text-sm text-muted-foreground">
-            Track your salon&apos;s performance
+            Seeded analytics scenario for the hackathon demo
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -137,9 +136,9 @@ export default function OwnerAnalytics() {
               </button>
             ))}
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" disabled title="Export requires durable production analytics">
             <Download className="size-3.5" />
-            Export
+            Export after launch
           </Button>
         </div>
       </div>
@@ -183,7 +182,7 @@ export default function OwnerAnalytics() {
           <CardContent>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData}>
+                <AreaChart data={visibleRevenueData}>
                   <defs>
                     <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="var(--color-glowgo-pink)" stopOpacity={0.3} />
@@ -208,7 +207,7 @@ export default function OwnerAnalytics() {
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueData.slice(-14)}>
+                <BarChart data={visibleRevenueData.slice(-14)}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 9 }} tickLine={false} interval={1} />
                   <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
@@ -314,9 +313,15 @@ export default function OwnerAnalytics() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" size="sm" className="w-full gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1"
+              disabled
+              title="Export requires durable production analytics"
+            >
               <Download className="size-3.5" />
-              Export Report
+              Export unavailable in demo
             </Button>
           </CardFooter>
         </Card>

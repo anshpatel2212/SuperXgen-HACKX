@@ -1,28 +1,26 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { SalonApprovalCard } from "@/components/admin/salon-approval-card"
 import { EmptyState } from "@/components/shared/empty-state"
-import { LoadingSkeleton } from "@/components/shared/loading-skeleton"
-import { formatDate, formatPrice, getInitials } from "@/lib/utils"
+import { formatDate, getInitials } from "@/lib/utils"
 import {
   Store,
   Search,
   MapPin,
   Star,
-  CalendarDays,
   Eye,
   Check,
   X,
   Sparkles,
 } from "lucide-react"
-import { SALONS } from "@/data"
-import type { Salon, SalonStatus } from "@/types"
+import { useDemoSalonStatuses } from "@/lib/demo-salon-status"
+import type { SalonStatus } from "@/types"
 
 const statusFilters: { label: string; value: string }[] = [
   { label: "All", value: "all" },
@@ -33,8 +31,7 @@ const statusFilters: { label: string; value: string }[] = [
 ]
 
 export default function AdminSalons() {
-  const [isLoading] = useState(false)
-  const [salons, setSalons] = useState<Salon[]>(SALONS)
+  const { salons, updateStatus } = useDemoSalonStatuses()
   const [statusFilter, setStatusFilter] = useState("all")
   const [search, setSearch] = useState("")
 
@@ -47,30 +44,14 @@ export default function AdminSalons() {
     return matchesStatus && matchesSearch
   })
 
-  const handleAction = async (id: string, newStatus: SalonStatus) => {
-    setSalons((prev) => {
-      const updated = prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
-      const salon = SALONS.find((s) => s.id === id)
-      if (salon) salon.status = newStatus
-      return updated
-    })
-  }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-semibold">Salons</h1>
-        <LoadingSkeleton type="list" />
-      </div>
-    )
-  }
+  const handleAction = (id: string, newStatus: SalonStatus) => updateStatus(id, newStatus)
 
   return (
     <div className="animate-fade-in space-y-6">
       <div>
         <h1 className="text-xl font-semibold">Salons</h1>
         <p className="text-sm text-muted-foreground">
-          Manage all registered salons on the platform
+          Moderate the seeded salon catalog in this browser demo
         </p>
       </div>
 
@@ -234,9 +215,11 @@ export default function AdminSalons() {
                             <Sparkles className="size-3.5" />
                           </Button>
                         )}
-                        <Button size="xs" variant="ghost">
-                          <Eye className="size-3.5" />
-                        </Button>
+                        <Link href={`/salon/${salon.id}`} aria-label={`View ${salon.name}`}>
+                          <Button size="xs" variant="ghost">
+                            <Eye className="size-3.5" />
+                          </Button>
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -246,6 +229,9 @@ export default function AdminSalons() {
           </div>
         </div>
       )}
+      <p className="text-center text-xs text-muted-foreground">
+        Moderation changes persist in this browser and do not represent production publication controls.
+      </p>
     </div>
   )
 }
