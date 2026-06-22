@@ -2,22 +2,16 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
-  Sparkles, Bot, Send, Search, Star, Lightbulb, ArrowRight,
-  MapPin, IndianRupee, ShieldCheck, Clock, Zap
+  Sparkles, Bot, Send, Search, Star, MapPin, IndianRupee, Zap
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { ChatMessage } from '@/components/ai/chat-message'
-import { SuggestedPrompts } from '@/components/ai/suggested-prompts'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { cn, formatPrice, getInitials } from '@/lib/utils'
-import {
-  extractIntent, buildSearchContext, generateFullRecommendation,
-  summarizeReviews, generateProfileInsights
-} from '@/services/ai'
-import { computeSalonMetrics, computeTrustScoreBadge, getSalonServices } from '@/services/calculations'
-import { getSalonOffers, getSalonById, getServiceById } from '@/lib/data-service'
+import { formatPrice, getInitials } from '@/lib/utils'
+import { buildSearchContext, generateFullRecommendation } from '@/services/ai'
+import { computeSalonMetrics, computeTrustScoreBadge } from '@/services/calculations'
+import { getSalonOffers } from '@/lib/data-service'
 import type { Salon, AIIntent } from '@/types'
 import Link from 'next/link'
 
@@ -102,18 +96,16 @@ export default function AIAssistantPage() {
         if (rec.top_matches.length === 0) {
           replyContent = rec.summary
         } else {
-          const ctxList = salonContexts.slice(0, 3)
+          const ctxList = salonContexts.filter((context) => context !== null).slice(0, 3)
           replyContent = `### ${rec.summary}\n\n`
-          replyContent += ctxList.map((ctx: any, i: number) => {
+          replyContent += ctxList.map((ctx, i: number) => {
             const s = ctx.salon
-            const metrics = computeSalonMetrics(s.id)
-            const trustBadge = computeTrustScoreBadge(metrics.trust_score)
             const match = rec.top_matches[i]
             recommendations.push({ salon: s, reason: match?.reason || '' })
             return `**${i + 1}. ${s.name}** — ${s.area}\n${match?.reason || ''}\n\n`
           }).join('\n')
 
-          replyContent += `\n✨ **Live Data Guarantee**: These results are based on real-time salon data — prices, ratings, trust scores, and availability are all current and verified.`
+          replyContent += `\n✨ **Demo catalog note**: These matches use the current GlowGo sample catalog and calculated salon metrics.`
         }
 
         const assistantMsg: Message = {
@@ -125,7 +117,7 @@ export default function AIAssistantPage() {
           intent,
         }
         setMessages(prev => [...prev, assistantMsg])
-      } catch (err) {
+      } catch {
         setMessages(prev => [...prev, {
           id: `ai_${Date.now()}`,
           content: "I'm sorry, I encountered an error while searching. Please try again with different keywords.",
@@ -151,13 +143,13 @@ export default function AIAssistantPage() {
         {/* Hero */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-pink-100 text-pink-700 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
-            <Sparkles className="w-4 h-4" /> Powered by Live Salon Data
+            <Sparkles className="w-4 h-4" /> Powered by the GlowGo Demo Catalog
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
             GlowGo AI Beauty Assistant
           </h1>
           <p className="text-gray-500 max-w-xl mx-auto">
-            Ask me anything about salons, services, prices, and availability. I'm connected directly to live, calculated data — I never make things up.
+            Ask about salons, services, prices, and offers in the current GlowGo demo catalog.
           </p>
         </div>
 
@@ -165,13 +157,12 @@ export default function AIAssistantPage() {
         <div className="space-y-4 mb-6">
           {messages.map((msg) => (
             <div key={msg.id}>
-              <ChatMessage message={msg.content} role={msg.role} recommendations={msg.recommendations?.map(r => r.salon)} />
+              <ChatMessage message={msg.content} role={msg.role} />
               {msg.recommendations && msg.recommendations.length > 0 && (
                 <div className="mt-2 ml-8 space-y-2">
                   {msg.recommendations.map((rec, i) => {
                     const metrics = computeSalonMetrics(rec.salon.id)
                     const badge = computeTrustScoreBadge(metrics.trust_score)
-                    const services = getSalonServices(rec.salon.id)
                     const offers = getSalonOffers(rec.salon.id)
                     return (
                       <Link key={i} href={`/salon/${rec.salon.id}`}>

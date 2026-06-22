@@ -1,4 +1,6 @@
-import type { Salon, Service, Booking, Review, Favorite, Offer, SearchFilters, DashboardMetrics } from "@/types"
+import type { Salon, Service, Booking, BookingStatus, Review, Favorite, Offer, SearchFilters, AIIntent } from "@/types"
+import type { CreateBookingInput } from "@/lib/validation/booking"
+import { getDemoBookings, updateDemoBookingStatus, upsertDemoBooking } from "@/lib/demo-bookings"
 
 const BASE = "/api"
 
@@ -43,25 +45,28 @@ export async function updateSalon(id: string, data: Partial<Salon>) {
 
 // Bookings
 export async function getUserBookings(userId: string) {
-  return request<{ bookings: Booking[]; total: number }>(`/bookings?userId=${userId}`)
+  const bookings = getDemoBookings().filter((booking) => booking.user_id === userId)
+  return { bookings, total: bookings.length }
 }
 
-export async function createBooking(data: {
-  user_id: string
-  salon_id: string
-  service_id: string
-  booking_date: string
-  start_time: string
-  end_time?: string
-  is_home_service?: boolean
-  home_address?: string
-  notes?: string
-}) {
-  return request<Booking>(`/bookings`, { method: "POST", body: JSON.stringify(data) })
+export async function createBooking(data: CreateBookingInput) {
+  const booking = await request<Booking>(`/bookings`, { method: "POST", body: JSON.stringify(data) })
+  return upsertDemoBooking(booking)
 }
 
-export async function updateBooking(id: string, data: { status?: string; notes?: string }) {
-  return request<Booking>(`/bookings/${id}`, { method: "PATCH", body: JSON.stringify(data) })
+export async function updateBooking(id: string, data: { status?: BookingStatus; notes?: string }) {
+  const localBooking = data.status ? updateDemoBookingStatus(id, data.status) : getDemoBookings().find((booking) => booking.id === id)
+  if (!localBooking) throw new Error("Booking not found in the demo repository")
+
+  try {
+    const serverBooking = await request<Booking>(`/bookings/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+    return upsertDemoBooking(serverBooking)
+  } catch {
+    return localBooking
+  }
 }
 
 // Reviews
@@ -95,13 +100,13 @@ export async function removeFavorite(userId: string, salonId: string) {
 
 // AI
 export async function aiSearch(query: string, filters?: Partial<SearchFilters>) {
-  return request<{ salons: Salon[]; reasoning: string; intent: any }>(`/ai/search`, {
+  return request<{ salons: Salon[]; reasoning: string; intent: AIIntent }>(`/ai/search`, {
     method: "POST", body: JSON.stringify({ query, filters }),
   })
 }
 
 export async function aiChat(message: string, userId?: string, sessionId?: string) {
-  return request<{ response: string; recommendations?: Salon[]; intent?: any }>(`/ai/chat`, {
+  return request<{ response: string; recommendations?: Salon[]; intent?: AIIntent }>(`/ai/chat`, {
     method: "POST", body: JSON.stringify({ message, userId, sessionId }),
   })
 }
@@ -114,7 +119,6 @@ export async function aiRecommend(userId?: string) {
 
 // Store-level helpers (for client-side mutations)
 import { bookingsStore, favoritesStore, reviewsStore } from "@/lib/store"
-import type { BookingStatus } from "@/types"
 
 export function addBookingToStore(booking: Booking) {
   bookingsStore.push(booking)
