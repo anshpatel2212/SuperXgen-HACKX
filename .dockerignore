@@ -1,0 +1,19 @@
+# Dependencies and files to exclude from Docker image
+node_modules
+npm-debug.log
+.next/cache
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.md
+.eslintignore
+.prettierignore
+.idea
+.vscode
+coverage
+.turbo
+dist
+build
