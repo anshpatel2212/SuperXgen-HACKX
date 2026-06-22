@@ -132,7 +132,14 @@ function SalonDetailContent({
   const [serviceFilter, setServiceFilter] = useState("all")
   const [reviewSort, setReviewSort] = useState<"date" | "rating">("date")
 
-  const allImages = [salon.cover_url, ...salon.images]
+  const allImages = useMemo(() => {
+    const list = [
+      salon.cover_url || salon.cover_image,
+      ...(salon.images || []),
+      ...(salon.gallery || []),
+    ].filter(Boolean) as string[]
+    return list.length > 0 ? list : ["https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80"]
+  }, [salon])
 
   const serviceCategories = useMemo(() => {
     const cats = [...new Set(services.map((s) => s.category))]
@@ -388,7 +395,11 @@ function SalonInfoSection({
 
         <div className="flex items-center gap-1 text-sm text-gray-500">
           <Clock className="w-4 h-4 text-glowgo-pink" />
-          {formatTime(salon.working_hours_json.monday.open)} - {formatTime(salon.working_hours_json.monday.close)}
+          {salon.working_hours_json?.monday?.open && salon.working_hours_json?.monday?.close ? (
+            <>{formatTime(salon.working_hours_json.monday.open)} - {formatTime(salon.working_hours_json.monday.close)}</>
+          ) : (
+            <span>09:00 AM - 09:00 PM</span>
+          )}
         </div>
       </div>
 
