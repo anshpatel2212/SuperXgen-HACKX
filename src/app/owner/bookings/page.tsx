@@ -1,15 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
-import { updateBookingInStore } from "@/lib/api-client"
+import { useRouter } from "next/navigation"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -21,10 +16,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { EmptyState } from "@/components/shared/empty-state"
-import { LoadingSkeleton } from "@/components/shared/loading-skeleton"
 import { formatDate, formatTime, formatPrice, getInitials } from "@/lib/utils"
 import {
   CalendarCheck,
@@ -39,31 +33,10 @@ import {
   Store,
 } from "lucide-react"
 import { SALONS } from "@/data"
+import { DEMO_ACCOUNTS } from "@/config/demo-auth"
 import { useAuth } from "@/lib/auth-context"
+import { useDemoBookings } from "@/lib/demo-bookings"
 import type { BookingStatus, Salon } from "@/types"
-
-interface BookingItem {
-  id: string
-  customer: string
-  customerPhone: string
-  service: string
-  date: string
-  time: string
-  status: BookingStatus
-  amount: number
-  address?: string
-  notes?: string
-  salon_id?: string
-}
-
-const allBookings: BookingItem[] = [
-  { id: "b1", customer: "Priya Sharma", customerPhone: "+91 98765 43210", service: "Classic Haircut", date: "2025-06-10", time: "10:00", status: "confirmed", amount: 800, salon_id: "1" },
-  { id: "b2", customer: "Rahul Verma", customerPhone: "+91 98765 43211", service: "Bridal Makeup", date: "2025-06-09", time: "14:00", status: "completed", amount: 12000, notes: "Please use hypoallergenic products", salon_id: "1" },
-  { id: "b3", customer: "Neha Gupta", customerPhone: "+91 98765 43212", service: "Luxury Facial", date: "2025-06-08", time: "11:30", status: "completed", amount: 1999, salon_id: "1" },
-  { id: "b4", customer: "Vikram Singh", customerPhone: "+91 98765 43213", service: "Hair Color", date: "2025-06-07", time: "16:00", status: "pending", amount: 3500, salon_id: "1" },
-  { id: "b5", customer: "Ananya Patel", customerPhone: "+91 98765 43214", service: "Manicure Combo", date: "2025-06-06", time: "09:00", status: "cancelled", amount: 1200, salon_id: "1" },
-  { id: "b6", customer: "Kavita Desai", customerPhone: "+91 98765 43215", service: "Hair Spa", date: "2025-06-12", time: "15:30", status: "pending", amount: 1800, address: "Bandra West, Mumbai", salon_id: "1" },
-]
 
 const statusTabs: { label: string; value: string; filter?: BookingStatus }[] = [
   { label: "All", value: "all" },
@@ -75,14 +48,11 @@ const statusTabs: { label: string; value: string; filter?: BookingStatus }[] = [
 
 export default function OwnerBookings() {
   const { user, isLoading: authLoading } = useAuth()
+  const router = useRouter()
 
   const ownerSalons: Salon[] = SALONS.filter((s) => s.owner_id === (user?.id || ""))
   const ownerSalonIds = ownerSalons.map((s) => s.id)
-
-  const ownerBookings = allBookings.filter((b) => ownerSalonIds.includes(b.salon_id || ""))
-
-  const [isLoading, setIsLoading] = useState(false)
-  const [bookings, setBookings] = useState(ownerBookings)
+  const { bookings, updateStatus } = useDemoBookings({ salonIds: ownerSalonIds })
   const [activeTab, setActiveTab] = useState("all")
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: string } | null>(null)
@@ -95,24 +65,17 @@ export default function OwnerBookings() {
   const handleStatusUpdate = async (id: string, newStatus: BookingStatus) => {
     setActionLoading(id)
     try {
-      updateBookingInStore(id, { status: newStatus })
-      await new Promise((r) => setTimeout(r, 600))
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
-      )
-    } catch (err) {
-      console.error("Failed to update booking:", err)
+      updateStatus(id, newStatus)
+    } catch {
+      // The confirmation dialog remains the visible failure boundary in demo mode.
     }
     setActionLoading(null)
     setConfirmAction(null)
   }
 
-  if (authLoading || isLoading) {
+  if (authLoading) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-semibold">Bookings</h1>
-        <LoadingSkeleton type="list" />
-      </div>
+      <div className="py-16 text-center text-sm text-muted-foreground">Loading bookings…</div>
     )
   }
 
@@ -123,7 +86,7 @@ export default function OwnerBookings() {
         title="No salons yet"
         description="Create a salon first to start receiving bookings"
         actionLabel="Go to Salons"
-        onAction={() => {}}
+        onAction={() => router.push("/owner/onboarding")}
       />
     )
   }
@@ -164,19 +127,22 @@ export default function OwnerBookings() {
             />
           ) : (
             <div className="space-y-3">
-              {filtered.map((booking) => (
+              {filtered.map((booking) => {
+                const customer = DEMO_ACCOUNTS.find((account) => account.user.id === booking.user_id)?.user
+                const customerName = customer?.full_name || "Demo Customer"
+                return (
                 <Card key={booking.id} className="transition-shadow hover:shadow-sm">
                   <CardContent className="flex flex-wrap items-start justify-between gap-3 p-4">
                     <div className="flex items-start gap-3">
                       <Avatar size="default">
                         <AvatarFallback>
-                          {getInitials(booking.customer)}
+                          {getInitials(customerName)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium">
-                            {booking.customer}
+                            {customerName}
                           </p>
                           <StatusBadge
                             status={booking.status}
@@ -184,27 +150,27 @@ export default function OwnerBookings() {
                           />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {booking.service}
+                          {booking.service?.name || "Service"}
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="size-3" />
-                            {formatDate(booking.date)} at{" "}
-                            {formatTime(booking.time)}
+                            {formatDate(booking.booking_date)} at{" "}
+                            {formatTime(booking.booking_time)}
                           </span>
                           <span className="flex items-center gap-1">
                             <IndianRupee className="size-3" />
-                            {formatPrice(booking.amount)}
+                            {formatPrice(booking.total_price)}
                           </span>
                           <span className="flex items-center gap-1">
                             <Phone className="size-3" />
-                            {booking.customerPhone}
+                            {customer?.phone || "Demo contact unavailable"}
                           </span>
                         </div>
-                        {booking.address && (
+                        {booking.address_text && (
                           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                             <MapPin className="size-3" />
-                            {booking.address}
+                            {booking.address_text}
                           </p>
                         )}
                         {booking.notes && (
@@ -277,7 +243,8 @@ export default function OwnerBookings() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                )
+              })}
             </div>
           )}
         </TabsContent>

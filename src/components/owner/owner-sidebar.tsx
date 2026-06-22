@@ -26,7 +26,7 @@ const navItems = [
   { href: "/owner/ai-helper", label: "AI Content", icon: Sparkles },
   { href: "/owner/insights", label: "Insights", icon: Lightbulb },
   { href: "/owner/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/owner/salons/new", label: "Add Salon", icon: Plus },
+  { href: "/owner/onboarding", label: "Add Salon", icon: Plus },
 ]
 
 interface OwnerSidebarProps {

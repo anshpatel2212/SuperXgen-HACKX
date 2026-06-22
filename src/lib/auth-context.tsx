@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import { DEMO_ACCOUNTS } from "@/config/demo-auth"
 
 export interface AuthUser {
   id: string
@@ -15,25 +16,67 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  signup: (data: { fullName: string; email: string; phone: string; password: string; role: "customer" | "owner" }) => Promise<{ success: boolean; error?: string }>
+  login: (email: string, password: string) => Promise<AuthResult>
+  signup: (data: { fullName: string; email: string; phone: string; password: string; role: "customer" | "owner" }) => Promise<AuthResult>
   logout: () => void
   updateProfile: (data: Partial<AuthUser>) => Promise<{ success: boolean; error?: string }>
+}
+
+interface AuthResult {
+  success: boolean
+  error?: string
+  user?: AuthUser
+}
+
+interface StoredUser {
+  user: AuthUser
+  password: string
 }
 
 const USERS_KEY = "glowgo_users"
 const SESSION_KEY = "glowgo_session"
 
-function getStoredUsers(): Record<string, { user: AuthUser; password: string }> {
+export function getRoleHome(role: AuthUser["role"]): string {
+  if (role === "admin") return "/admin"
+  if (role === "owner") return "/owner"
+  return "/dashboard"
+}
+
+function getStoredUsers(): Record<string, StoredUser> {
   if (typeof window === "undefined") return {}
   try {
-    return JSON.parse(localStorage.getItem(USERS_KEY) || "{}")
+    const stored = JSON.parse(localStorage.getItem(USERS_KEY) || "{}") as Record<string, StoredUser>
+    let changed = false
+
+    for (const account of DEMO_ACCOUNTS) {
+      const existingAccount = Object.values(stored).find(
+        (record) => record.user.email.toLowerCase() === account.user.email.toLowerCase()
+      )
+
+      if (!existingAccount) {
+        stored[account.user.id] = {
+          user: account.user,
+          password: account.password,
+        }
+        changed = true
+      }
+    }
+
+    if (changed) setStoredUsers(stored)
+    return stored
   } catch {
-    return {}
+    const seededUsers = Object.fromEntries(
+      DEMO_ACCOUNTS.map((account) => [
+        account.user.id,
+        { user: account.user, password: account.password },
+      ])
+    )
+    setStoredUsers(seededUsers)
+    return seededUsers
   }
 }
 
-function setStoredUsers(users: Record<string, { user: AuthUser; password: string }>) {
+function setStoredUsers(users: Record<string, StoredUser>) {
   if (typeof window === "undefined") return
   localStorage.setItem(USERS_KEY, JSON.stringify(users))
 }
@@ -69,14 +112,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    const sessionUser = getSession()
-    if (sessionUser) setUser(sessionUser)
-    setIsLoading(false)
+    const timeoutId = window.setTimeout(() => {
+      getStoredUsers()
+      setUser(getSession())
+      setIsLoading(false)
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     const users = getStoredUsers()
-    const record = Object.values(users).find((u) => u.user.email === email)
+    const normalizedEmail = email.trim().toLowerCase()
+    const record = Object.values(users).find(
+      (storedUser) => storedUser.user.email.toLowerCase() === normalizedEmail
+    )
 
     if (!record) {
       return { success: false, error: "No account found with this email. Please sign up." }
@@ -88,12 +138,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(record.user)
     setSession(record.user)
-    return { success: true }
+    return { success: true, user: record.user }
   }, [])
 
   const signup = useCallback(async (data: { fullName: string; email: string; phone: string; password: string; role: "customer" | "owner" }) => {
     const users = getStoredUsers()
-    const exists = Object.values(users).some((u) => u.user.email === data.email)
+    const normalizedEmail = data.email.trim().toLowerCase()
+    const exists = Object.values(users).some(
+      (storedUser) => storedUser.user.email.toLowerCase() === normalizedEmail
+    )
 
     if (exists) {
       return { success: false, error: "An account with this email already exists." }
@@ -101,9 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const newUser: AuthUser = {
       id: generateId(),
-      email: data.email,
-      full_name: data.fullName,
-      phone: data.phone,
+      email: normalizedEmail,
+      full_name: data.fullName.trim(),
+      phone: data.phone.trim(),
       role: data.role,
       avatar_url: "",
     }
@@ -113,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(newUser)
     setSession(newUser)
-    return { success: true }
+    return { success: true, user: newUser }
   }, [])
 
   const logout = useCallback(() => {

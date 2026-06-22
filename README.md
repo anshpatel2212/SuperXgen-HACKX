@@ -94,12 +94,12 @@ npm run dev
 
 ### Demo Credentials
 
-After seeding, use these accounts:
-- **Customer:** riya.sharma@example.com (password: any)
-- **Owner:** neha@glowandglam.com (password: any)
-- **Admin:** admin@glowgo.com (password: any)
+The local demo automatically seeds these accounts in a fresh browser:
+- **Customer:** riya.sharma@example.com (password: `demo123`)
+- **Owner:** neha@glowandglam.com (password: `demo123`)
+- **Admin:** admin@glowgo.com (password: `demo123`)
 
-> Note: The demo uses localStorage-based auth. For production, switch to Supabase Auth.
+> Note: The current demo uses browser localStorage auth and is not production security. Supabase Auth migration is tracked in `IMPLEMENTATION_PLAN.md`.
 
 ## Project Structure
 

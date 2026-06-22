@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/lib/auth-context"
 import { cn, getInitials } from "@/lib/utils"
 
 const NAV_ITEMS = [
@@ -27,6 +28,7 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ isOpen, onToggle, userName = "Priya Sharma", userAvatar }: DashboardSidebarProps) {
   const pathname = usePathname()
+  const { logout } = useAuth()
 
   return (
     <>
@@ -99,13 +101,15 @@ export function DashboardSidebar({ isOpen, onToggle, userName = "Priya Sharma", 
 
         <div className="p-3 border-t border-gray-50 space-y-1">
           <Link
-            href="/"
+            href="/dashboard/preferences"
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all"
           >
             <Settings className="w-4 h-4" />
             Settings
           </Link>
           <button
+            type="button"
+            onClick={logout}
             className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all"
           >
             <LogOut className="w-4 h-4" />

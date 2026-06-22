@@ -77,7 +77,7 @@ export function RecommendationCard({
           </div>
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <Link href={`/salon/${salon.slug || salon.id}`} className="flex-1">
+          <Link href={`/salon/${salon.id}`} className="flex-1">
             <Button
               variant="outline"
               size="xs"
@@ -87,7 +87,7 @@ export function RecommendationCard({
             </Button>
           </Link>
           <Link
-            href={`/booking?salon=${salon.id}`}
+            href={`/booking/${salon.id}`}
             className="flex-1"
           >
             <Button

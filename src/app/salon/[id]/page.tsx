@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import {
   Star,
   MapPin,
@@ -37,8 +37,8 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from 
 import { SALONS, SERVICES, REVIEWS, OFFERS } from "@/data"
 import { formatPrice, formatDate, formatTime, getInitials, cn } from "@/lib/utils"
 import { createReview } from "@/lib/data-service"
-import { reviewsStore } from "@/lib/store"
 import { useAuth } from "@/lib/auth-context"
+import { useDemoFavorites } from "@/lib/demo-favorites"
 import { ReviewForm } from "@/components/salon/review-form"
 import type { Service, Review, Offer, Salon } from "@/types"
 
@@ -86,6 +86,12 @@ const TIME_SLOTS = [
   "18:00",
 ]
 
+const DEMO_CURRENT_DATE = "2026-06-22"
+
+function getServicePrice(service: Service) {
+  return service.final_price || service.discounted_price || service.price
+}
+
 export default function SalonDetailPage() {
   const params = useParams()
   const id = params.id as string
@@ -93,14 +99,20 @@ export default function SalonDetailPage() {
   const salon = SALONS.find((s) => s.id === id)
   const salonServices = SERVICES.filter((s) => s.salon_id === id)
   const salonReviews = REVIEWS.filter((r) => r.salon_id === id)
-  const salonOffers = OFFERS.filter((o) => o.salon_id === id)
+  const salonOffers = OFFERS.filter(
+    (offer) =>
+      offer.salon_id === id &&
+      offer.is_active &&
+      offer.valid_from <= DEMO_CURRENT_DATE &&
+      offer.valid_till >= DEMO_CURRENT_DATE
+  )
 
   if (!salon) {
     return (
       <div className="pt-16 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Salon Not Found</h1>
-          <p className="text-gray-500 mb-4">The salon you're looking for doesn't exist.</p>
+          <p className="text-gray-500 mb-4">The salon you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/explore">
             <Button>Browse Salons</Button>
           </Link>
@@ -124,13 +136,14 @@ function SalonDetailContent({
   offers: Offer[]
 }) {
   const [selectedImage, setSelectedImage] = useState(0)
-  const [isFavorited, setIsFavorited] = useState(false)
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [selectedDate, setSelectedDate] = useState(NEXT_7_DAYS[0].date)
   const [selectedTime, setSelectedTime] = useState("")
   const [activeTab, setActiveTab] = useState("services")
   const [serviceFilter, setServiceFilter] = useState("all")
   const [reviewSort, setReviewSort] = useState<"date" | "rating">("date")
+  const [currentReviews, setCurrentReviews] = useState(reviews)
+  const router = useRouter()
 
   const allImages = useMemo(() => {
     const list = [
@@ -152,27 +165,26 @@ function SalonDetailContent({
   }, [services, serviceFilter])
 
   const sortedReviews = useMemo(() => {
-    const sorted = [...reviews]
+    const sorted = [...currentReviews]
     if (reviewSort === "date") {
       sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     } else {
       sorted.sort((a, b) => b.rating - a.rating)
     }
     return sorted
-  }, [reviews, reviewSort])
+  }, [currentReviews, reviewSort])
 
   const ratingDistribution = useMemo(() => {
     const dist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-    reviews.forEach((r) => {
+    currentReviews.forEach((r) => {
       const key = Math.floor(r.rating) as keyof typeof dist
       if (dist[key] !== undefined) dist[key]++
     })
     return dist
-  }, [reviews])
+  }, [currentReviews])
 
   const handleServiceSelect = (service: Service) => {
-    setSelectedService(service)
-    setActiveTab("services")
+    router.push(`/booking/${salon.id}?service=${service.id}`)
   }
 
   return (
@@ -192,7 +204,7 @@ function SalonDetailContent({
           <div className="lg:col-span-2 space-y-8">
             <GallerySection images={allImages} selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
 
-            <SalonInfoSection salon={salon} isFavorited={isFavorited} setIsFavorited={setIsFavorited} />
+            <SalonInfoSection salon={salon} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full bg-gray-100/80 rounded-xl p-1 h-auto">
@@ -203,7 +215,7 @@ function SalonDetailContent({
                   About
                 </TabsTrigger>
                 <TabsTrigger value="reviews" className="flex-1 text-xs sm:text-sm py-2">
-                  Reviews ({reviews.length})
+                  Reviews ({currentReviews.length})
                 </TabsTrigger>
                 <TabsTrigger value="offers" className="flex-1 text-xs sm:text-sm py-2">
                   Offers ({offers.length})
@@ -233,7 +245,8 @@ function SalonDetailContent({
                   ratingDistribution={ratingDistribution}
                   reviewSort={reviewSort}
                   setReviewSort={setReviewSort}
-                  totalReviews={reviews.length}
+                  totalReviews={currentReviews.length}
+                  onReviewAdded={(review) => setCurrentReviews((existing) => [review, ...existing])}
                 />
               </TabsContent>
 
@@ -338,13 +351,39 @@ function GallerySection({
 
 function SalonInfoSection({
   salon,
-  isFavorited,
-  setIsFavorited,
 }: {
   salon: Salon
-  isFavorited: boolean
-  setIsFavorited: (v: boolean) => void
 }) {
+  const { user } = useAuth()
+  const { favoriteIds, toggleFavorite } = useDemoFavorites(user?.id)
+  const [shareStatus, setShareStatus] = useState("")
+  const isFavorited = favoriteIds.includes(salon.id)
+
+  const handleFavorite = () => {
+    if (!user) return
+    toggleFavorite(salon.id)
+  }
+
+  const handleShare = async () => {
+    const shareData = {
+      title: salon.name,
+      text: `Check out ${salon.name} on GlowGo Mumbai`,
+      url: window.location.href,
+    }
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData)
+        setShareStatus("Shared")
+      } else {
+        await navigator.clipboard.writeText(shareData.url)
+        setShareStatus("Link copied")
+      }
+    } catch {
+      setShareStatus("")
+    }
+  }
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -363,7 +402,10 @@ function SalonInfoSection({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsFavorited(!isFavorited)}
+            type="button"
+            onClick={handleFavorite}
+            disabled={!user}
+            title={user ? "Save this salon in the current demo browser" : "Sign in to save salons"}
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all",
               isFavorited
@@ -374,9 +416,13 @@ function SalonInfoSection({
             <Heart className={cn("w-4 h-4", isFavorited && "fill-red-500")} />
             {isFavorited ? "Saved" : "Save"}
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 transition-all">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 transition-all"
+          >
             <Share2 className="w-4 h-4" />
-            Share
+            {shareStatus || "Share"}
           </button>
         </div>
       </div>
@@ -498,9 +544,9 @@ function ServicesTab({
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-lg font-bold text-gray-900">{formatPrice(service.price)}</div>
-                    {service.discounted_price > 0 && (
-                      <div className="text-sm text-gray-400 line-through">{formatPrice(service.discounted_price)}</div>
+                    <div className="text-lg font-bold text-gray-900">{formatPrice(getServicePrice(service))}</div>
+                    {getServicePrice(service) < service.price && (
+                      <div className="text-sm text-gray-400 line-through">{formatPrice(service.price)}</div>
                     )}
                     <Button
                       size="sm"
@@ -592,6 +638,7 @@ function ReviewsTab({
   reviewSort,
   setReviewSort,
   totalReviews,
+  onReviewAdded,
 }: {
   salonId: string
   salonName: string
@@ -600,6 +647,7 @@ function ReviewsTab({
   reviewSort: "date" | "rating"
   setReviewSort: (v: "date" | "rating") => void
   totalReviews: number
+  onReviewAdded: (review: Review) => void
 }) {
   const { user } = useAuth()
   const totalRatings = Object.values(ratingDistribution).reduce((a, b) => a + b, 0)
@@ -611,23 +659,25 @@ function ReviewsTab({
       : 0
 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [reviewSubmitted, setReviewSubmitted] = useState(false)
 
   const handleSubmitReview = async (data: { rating: number; title: string; comment: string }) => {
     if (!user) return
-    const review = createReview({
+    const createdReview = createReview({
       user_id: user.id,
       salon_id: salonId,
       rating: data.rating,
       title: data.title,
       comment: data.comment,
     })
-    reviewsStore.push(review)
-    setReviewSubmitted(true)
-    setTimeout(() => {
-      setDialogOpen(false)
-      setReviewSubmitted(false)
-    }, 2000)
+    onReviewAdded({
+      ...createdReview,
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        avatar_url: user.avatar_url,
+      },
+    })
+    setDialogOpen(false)
   }
 
   return (
@@ -689,22 +739,31 @@ function ReviewsTab({
             Highest Rated
           </Button>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white text-sm font-medium whitespace-nowrap hover:opacity-90 transition-all">
-            <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-            Write a Review
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Write a Review</DialogTitle>
-            </DialogHeader>
-            <ReviewForm
-              salonName={salonName}
-              onSubmit={handleSubmitReview}
-              onCancel={() => setDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        {user ? (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white text-sm font-medium whitespace-nowrap hover:opacity-90 transition-all">
+              <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+              Write a Review
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Write a Review</DialogTitle>
+              </DialogHeader>
+              <ReviewForm
+                salonName={salonName}
+                onSubmit={handleSubmitReview}
+                onCancel={() => setDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Link
+            href="/login"
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-glowgo-pink/30 px-3 text-sm font-medium text-glowgo-pink"
+          >
+            Sign in to review
+          </Link>
+        )}
       </div>
 
       {reviews.length === 0 ? (
@@ -819,6 +878,12 @@ function BookingPanel({
   selectedTime: string
   setSelectedTime: (t: string) => void
 }) {
+  const [showAllServices, setShowAllServices] = useState(false)
+  const visibleServices = showAllServices ? services : services.slice(0, 6)
+  const bookingHref = selectedService
+    ? `/booking/${salon.id}?service=${selectedService.id}&date=${selectedDate}&time=${selectedTime}`
+    : `/booking/${salon.id}`
+
   return (
     <>
       <div className="hidden lg:block sticky top-24">
@@ -827,7 +892,7 @@ function BookingPanel({
             <div>
               <h3 className="font-semibold text-gray-900 text-sm">Select Service</h3>
               <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
-                {services.slice(0, 6).map((service) => (
+                {visibleServices.map((service) => (
                   <button
                     key={service.id}
                     onClick={() => setSelectedService(service)}
@@ -839,11 +904,15 @@ function BookingPanel({
                     )}
                   >
                     <span className="truncate">{service.name}</span>
-                    <span className="font-semibold shrink-0 ml-2">{formatPrice(service.price)}</span>
+                    <span className="font-semibold shrink-0 ml-2">{formatPrice(getServicePrice(service))}</span>
                   </button>
                 ))}
                 {services.length > 6 && (
-                  <button className="w-full text-center text-xs text-glowgo-pink py-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllServices(true)}
+                    className="w-full text-center text-xs text-glowgo-pink py-1"
+                  >
                     +{services.length - 6} more services
                   </button>
                 )}
@@ -858,9 +927,9 @@ function BookingPanel({
                     <p className="text-sm font-semibold text-gray-900">{selectedService.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-glowgo-pink">{formatPrice(selectedService.price)}</p>
-                    {selectedService.discounted_price > 0 && (
-                      <p className="text-xs text-gray-400 line-through">{formatPrice(selectedService.discounted_price)}</p>
+                    <p className="text-sm font-bold text-glowgo-pink">{formatPrice(getServicePrice(selectedService))}</p>
+                    {getServicePrice(selectedService) < selectedService.price && (
+                      <p className="text-xs text-gray-400 line-through">{formatPrice(selectedService.price)}</p>
                     )}
                   </div>
                 </div>
@@ -908,13 +977,18 @@ function BookingPanel({
               </div>
             </div>
 
-            <Button
-              className="w-full h-11 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 rounded-xl shadow-lg shadow-glowgo-pink/20"
-              disabled={!selectedService || !selectedTime}
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Book Now
-            </Button>
+            {selectedService && selectedTime ? (
+              <Link href={bookingHref}>
+                <Button className="w-full h-11 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 rounded-xl shadow-lg shadow-glowgo-pink/20">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Continue to Booking
+                </Button>
+              </Link>
+            ) : (
+              <Button className="w-full h-11" disabled>
+                Select a service and time
+              </Button>
+            )}
 
             <div className="text-xs text-gray-400 text-center">
               Free cancellation up to 2 hours before
@@ -930,15 +1004,20 @@ function BookingPanel({
               {selectedService ? selectedService.name : "Select a service"}
             </p>
             <p className="text-sm font-bold text-gray-900">
-              {selectedService ? formatPrice(selectedService.price) : "—"}
+              {selectedService ? formatPrice(getServicePrice(selectedService)) : "—"}
             </p>
           </div>
-          <Button
-            className="h-10 px-6 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 rounded-xl shadow-lg"
-            disabled={!selectedService || !selectedTime}
-          >
-            Book Now
-          </Button>
+          {selectedService && selectedTime ? (
+            <Link href={bookingHref}>
+              <Button className="h-10 px-6 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 rounded-xl shadow-lg">
+                Continue
+              </Button>
+            </Link>
+          ) : (
+            <Button className="h-10 px-6" disabled>
+              Select service
+            </Button>
+          )}
         </div>
       </div>
     </>

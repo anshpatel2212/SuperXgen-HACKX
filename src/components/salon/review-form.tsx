@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Star, ImagePlus, Loader2 } from "lucide-react"
+import { Star, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -49,6 +49,7 @@ export function ReviewForm({ salonName, onSubmit, onCancel }: ReviewFormProps) {
             onClick={() => setRating(star)}
             onMouseEnter={() => setHoverRating(star)}
             onMouseLeave={() => setHoverRating(0)}
+            aria-label={`Rate ${star} star${star === 1 ? "" : "s"}`}
             className="transition-transform hover:scale-110"
           >
             <Star
@@ -84,16 +85,9 @@ export function ReviewForm({ salonName, onSubmit, onCancel }: ReviewFormProps) {
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Photos (optional)</Label>
-        <button
-          type="button"
-          className="flex items-center justify-center gap-2 w-full p-4 rounded-lg border-2 border-dashed border-gray-200 text-gray-400 hover:border-glowgo-pink hover:text-glowgo-pink transition-colors"
-        >
-          <ImagePlus className="w-5 h-5" />
-          <span className="text-sm">Add photos</span>
-        </button>
-      </div>
+      <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+        Photo uploads are disabled in this demo and are planned with secure media storage.
+      </p>
 
       <div className="flex gap-3 pt-2">
         {onCancel && (

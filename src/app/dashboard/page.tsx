@@ -8,66 +8,28 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { cn, formatDate, formatTime, formatPrice, getInitials, getStatusColor } from "@/lib/utils"
-import { SALONS, SERVICES } from "@/data"
-
-const MOCK_BOOKINGS = [
-  {
-    id: "b1",
-    salonId: "1",
-    serviceId: "s1",
-    date: new Date().toISOString().split("T")[0],
-    time: "10:00",
-    status: "confirmed" as const,
-    amount: 800,
-  },
-  {
-    id: "b2",
-    salonId: "4",
-    serviceId: "s12",
-    date: new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0],
-    time: "14:30",
-    status: "confirmed" as const,
-    amount: 2500,
-  },
-  {
-    id: "b3",
-    salonId: "2",
-    serviceId: "s6",
-    date: new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0],
-    time: "11:00",
-    status: "completed" as const,
-    amount: 20000,
-  },
-  {
-    id: "b4",
-    salonId: "7",
-    serviceId: "s21",
-    date: new Date(Date.now() - 14 * 86400000).toISOString().split("T")[0],
-    time: "16:00",
-    status: "completed" as const,
-    amount: 999,
-  },
-  {
-    id: "b5",
-    salonId: "5",
-    serviceId: "s15",
-    date: new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0],
-    time: "15:00",
-    status: "cancelled" as const,
-    amount: 999,
-  },
-]
+import { REVIEWS } from "@/data"
+import { useAuth } from "@/lib/auth-context"
+import { useDemoBookings } from "@/lib/demo-bookings"
+import { useDemoFavorites } from "@/lib/demo-favorites"
 
 export default function DashboardOverview() {
-  const upcomingBookings = MOCK_BOOKINGS.filter((b) => b.status === "confirmed").length
-  const completedBookings = MOCK_BOOKINGS.filter((b) => b.status === "completed").length
-  const recentBookings = MOCK_BOOKINGS.slice(0, 5)
+  const { user } = useAuth()
+  const { favoriteIds } = useDemoFavorites(user?.id)
+  const { bookings } = useDemoBookings({ userId: user?.id })
+
+  const upcomingBookings = bookings.filter((booking) =>
+    ["pending", "confirmed", "rescheduled"].includes(booking.status)
+  ).length
+  const reviewCount = REVIEWS.filter((review) => review.user_id === user?.id).length
+  const recentBookings = bookings.slice(0, 5)
+  const firstName = user?.full_name.split(" ")[0] || "there"
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, Priya!</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}!</h1>
           <p className="text-sm text-gray-500 mt-1">Here&apos;s what&apos;s happening with your beauty journey.</p>
         </div>
         <Link href="/booking/1">
@@ -82,10 +44,9 @@ export default function DashboardOverview() {
         <StatCard
           icon={Calendar}
           label="Total Bookings"
-          value={MOCK_BOOKINGS.length}
+          value={bookings.length}
           iconBg="bg-glowgo-pink/10"
           iconColor="text-glowgo-pink"
-          trend={{ value: "+2 this month", positive: true }}
         />
         <StatCard
           icon={Calendar}
@@ -97,15 +58,14 @@ export default function DashboardOverview() {
         <StatCard
           icon={Heart}
           label="Favorites"
-          value={8}
+          value={favoriteIds.length}
           iconBg="bg-red-50"
           iconColor="text-red-400"
-          trend={{ value: "+3 this week", positive: true }}
         />
         <StatCard
           icon={MessageSquare}
           label="Reviews Written"
-          value={completedBookings}
+          value={reviewCount}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-500"
         />
@@ -126,9 +86,14 @@ export default function DashboardOverview() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {recentBookings.map((booking) => {
-                const salon = SALONS.find((s) => s.id === booking.salonId)
-                const service = SERVICES.find((s) => s.id === booking.serviceId)
+              {recentBookings.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm font-medium text-gray-700">No bookings yet</p>
+                  <Link href="/explore" className="mt-2 inline-block text-xs text-glowgo-pink hover:underline">
+                    Discover a salon
+                  </Link>
+                </div>
+              ) : recentBookings.map((booking) => {
                 const statusColor = getStatusColor(booking.status)
                 return (
                   <div
@@ -136,23 +101,23 @@ export default function DashboardOverview() {
                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Avatar className="w-9 h-9">
-                      <AvatarImage src={salon?.logo_url || ""} alt={salon?.name} />
+                      <AvatarImage src={booking.salon?.logo_url || ""} alt={booking.salon?.name} />
                       <AvatarFallback className="text-xs">
-                        {getInitials(salon?.name || "")}
+                        {getInitials(booking.salon?.name || "Salon")}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{salon?.name}</p>
-                      <p className="text-xs text-gray-500">{service?.name}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{booking.salon?.name || "Salon"}</p>
+                      <p className="text-xs text-gray-500">{booking.service?.name || "Service"}</p>
                       <p className="text-xs text-gray-400">
-                        {formatDate(booking.date)} at {formatTime(booking.time)}
+                        {formatDate(booking.booking_date)} at {formatTime(booking.booking_time)}
                       </p>
                     </div>
                     <div className="text-right">
                       <Badge className={cn("text-[10px] capitalize", statusColor)}>
                         {booking.status}
                       </Badge>
-                      <p className="text-xs font-medium text-gray-900 mt-1">{formatPrice(booking.amount)}</p>
+                      <p className="text-xs font-medium text-gray-900 mt-1">{formatPrice(booking.total_price)}</p>
                     </div>
                   </div>
                 )
@@ -203,11 +168,8 @@ export default function DashboardOverview() {
               </div>
               <h3 className="text-sm font-semibold text-gray-900">GlowGo Pro</h3>
               <p className="text-xs text-gray-500 mt-1">Unlock premium features & exclusive offers</p>
-              <Button
-                size="sm"
-                className="mt-3 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm text-xs h-7"
-              >
-                Learn More
+              <Button size="sm" className="mt-3 h-7 text-xs" disabled title="Memberships are planned after the demo">
+                Demo roadmap
               </Button>
             </CardContent>
           </Card>

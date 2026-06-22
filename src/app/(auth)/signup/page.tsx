@@ -57,7 +57,7 @@ export default function SignupPage() {
     })
     setIsLoading(false)
     if (result.success) {
-      router.push("/dashboard")
+      router.push(role === "owner" ? "/owner/onboarding" : "/dashboard")
     } else {
       setError(result.error || "Sign up failed. Please try again.")
     }
@@ -213,6 +213,7 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -236,6 +237,7 @@ export default function SignupPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
+                  aria-label={showConfirm ? "Hide password confirmation" : "Show password confirmation"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

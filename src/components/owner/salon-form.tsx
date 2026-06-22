@@ -21,7 +21,7 @@ import {
   CardDescription,
   CardFooter,
 } from "@/components/ui/card"
-import { MUMBAI_AREAS, MUMBAI_CITIES, AMENITIES_OPTIONS, formatTime } from "@/lib/utils"
+import { MUMBAI_AREAS, AMENITIES_OPTIONS } from "@/lib/utils"
 import { generateSalonDescription } from "@/services/ai"
 import { Sparkles, Loader2, Upload } from "lucide-react"
 import type { Salon, Gender } from "@/types"
@@ -94,7 +94,7 @@ export function SalonForm({ salon, onSave, isSaving }: SalonFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
-          <CardDescription>Update your salon's basic details</CardDescription>
+          <CardDescription>Update your salon&apos;s basic details</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
@@ -303,24 +303,24 @@ export function SalonForm({ salon, onSave, isSaving }: SalonFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Media</CardTitle>
-          <CardDescription>Upload logo, cover, and gallery images</CardDescription>
+          <CardDescription>Media upload requires the planned secure storage integration</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
             <Label>Logo</Label>
-            <div className="flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-glowgo-pink/50">
+            <div className="flex aspect-square cursor-not-allowed items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 opacity-60">
               <div className="flex flex-col items-center gap-1 text-muted-foreground">
                 <Upload className="size-5" />
-                <span className="text-xs">Upload Logo</span>
+                <span className="text-xs">Unavailable in demo</span>
               </div>
             </div>
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Cover Image</Label>
-            <div className="flex aspect-[16/9] items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-glowgo-pink/50">
+            <div className="flex aspect-[16/9] cursor-not-allowed items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 opacity-60">
               <div className="flex flex-col items-center gap-1 text-muted-foreground">
                 <Upload className="size-5" />
-                <span className="text-xs">Upload Cover</span>
+                <span className="text-xs">Unavailable in demo</span>
               </div>
             </div>
           </div>
@@ -330,7 +330,7 @@ export function SalonForm({ salon, onSave, isSaving }: SalonFormProps) {
               {Array.from({ length: 3 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex aspect-square w-24 items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-glowgo-pink/50"
+                  className="flex aspect-square w-24 cursor-not-allowed items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 opacity-60"
                 >
                   <Upload className="size-4 text-muted-foreground" />
                 </div>

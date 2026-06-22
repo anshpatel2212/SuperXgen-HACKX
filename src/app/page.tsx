@@ -1,7 +1,6 @@
 import Link from "next/link"
 import {
   Sparkles,
-  Search,
   Star,
   ChevronRight,
   ArrowRight,
@@ -24,10 +23,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { SalonCard } from "@/components/salon/salon-card"
-import { formatPrice } from "@/lib/utils"
 import type { Salon } from "@/types"
 import { SALONS, CATEGORIES, TESTIMONIALS } from "@/data"
 import { cn } from "@/lib/utils"
+import { HomeSearch } from "@/components/home/home-search"
 
 const FEATURES = [
   {
@@ -119,7 +118,7 @@ function HeroSection() {
         <div className="max-w-3xl mx-auto text-center">
           <Badge className="mb-6 px-4 py-1.5 bg-white/60 backdrop-blur-sm text-gray-700 border-0 shadow-sm rounded-full text-xs font-medium">
             <Sparkles className="w-3.5 h-3.5 mr-1.5 text-glowgo-pink" />
-            Mumbai's #1 AI-Powered Beauty Platform
+            Mumbai&apos;s AI-Powered Beauty Demo
           </Badge>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 leading-[1.1]">
@@ -133,33 +132,7 @@ function HeroSection() {
           </p>
 
           <div className="mt-10 max-w-2xl mx-auto">
-            <div className="flex flex-col sm:flex-row gap-3 p-2 bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  className="w-full h-11 pl-10 pr-4 rounded-xl bg-transparent border-0 text-sm text-gray-700 outline-none appearance-none cursor-pointer"
-                  defaultValue="Mumbai"
-                >
-                  <option>Mumbai</option>
-                  <option>Navi Mumbai</option>
-                  <option>Thane</option>
-                </select>
-              </div>
-              <div className="flex-1 relative">
-                <Scissors className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search service or salon..."
-                  className="w-full h-11 pl-10 pr-4 rounded-xl bg-transparent border-0 text-sm text-gray-700 outline-none"
-                />
-              </div>
-              <Link href="/explore">
-                <Button className="h-11 px-6 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 rounded-xl shadow-sm w-full sm:w-auto">
-                  Discover
-                  <ArrowRight className="w-4 h-4 ml-1.5" />
-                </Button>
-              </Link>
-            </div>
+            <HomeSearch />
           </div>
 
           <div className="mt-8 flex items-center justify-center gap-2 text-sm text-gray-500">
@@ -259,7 +232,7 @@ function CategoriesSection() {
           {CATEGORIES.map((cat, i) => {
             const IconComponent = CATEGORY_ICONS[i] || Sparkles
             return (
-              <Link key={cat.id} href={`/explore?service=${cat.name}`} className="group">
+              <Link key={cat.id} href={`/explore?service=${encodeURIComponent(cat.name)}`} className="group">
                 <Card className="border-0 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                   <CardContent className="p-6">
                     <div
@@ -318,7 +291,7 @@ function HowItWorksSection() {
         <div className="grid md:grid-cols-3 gap-8 relative">
           <div className="hidden md:block absolute top-16 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-0.5 bg-gradient-to-r from-glowgo-pink/30 via-glowgo-lavender/30 to-glowgo-pink/30" />
 
-          {steps.map((step, i) => (
+          {steps.map((step) => (
             <div key={step.number} className="relative text-center">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-glowgo-pink to-glowgo-lavender flex items-center justify-center mx-auto mb-6 shadow-lg shadow-glowgo-pink/20">
                 <span className="text-xl font-bold text-white">{step.number}</span>
@@ -350,8 +323,8 @@ function AIAssistantTeaser() {
                 Meet <span className="text-glowgo-pink">Glow AI</span>
               </h2>
               <p className="mt-4 text-gray-300 text-lg max-w-xl leading-relaxed">
-                Your personal beauty assistant powered by AI. Describe what you need and we'll find the perfect match
-                from Mumbai's best salons.
+                Your personal beauty assistant powered by AI. Describe what you need and we&apos;ll find the perfect
+                match from Mumbai&apos;s demo salon catalog.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                 <Link href="/ai-assistant">

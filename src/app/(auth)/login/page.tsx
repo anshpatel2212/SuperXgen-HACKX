@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
-import { useAuth } from "@/lib/auth-context"
+import { DEMO_ACCOUNTS } from "@/config/demo-auth"
+import { getRoleHome, useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -31,8 +32,8 @@ export default function LoginPage() {
     setIsLoading(true)
     const result = await login(email, password)
     setIsLoading(false)
-    if (result.success) {
-      router.push("/dashboard")
+    if (result.success && result.user) {
+      router.push(getRoleHome(result.user.role))
     } else {
       setError(result.error || "Login failed. Please try again.")
     }
@@ -89,6 +90,27 @@ export default function LoginPage() {
             </div>
           )}
 
+          <div className="mb-5 rounded-xl border border-glowgo-lavender/30 bg-glowgo-lavender/5 p-3">
+            <p className="mb-2 text-xs font-medium text-gray-700">Demo accounts</p>
+            <div className="grid grid-cols-3 gap-2">
+              {DEMO_ACCOUNTS.map((account) => (
+                <button
+                  key={account.user.role}
+                  type="button"
+                  onClick={() => {
+                    setEmail(account.user.email)
+                    setPassword(account.password)
+                    setError("")
+                  }}
+                  className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-glowgo-pink hover:text-glowgo-pink"
+                >
+                  {account.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] text-gray-500">Select a role, then sign in with the filled credentials.</p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
@@ -122,6 +144,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

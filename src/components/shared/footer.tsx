@@ -4,7 +4,7 @@ import { Sparkles, Globe, MessageCircle, Video, Camera, Mail, Phone, MapPin } fr
 const QUICK_LINKS = [
   { href: "/explore", label: "Explore Salons" },
   { href: "/ai-assistant", label: "AI Assistant" },
-  { href: "/booking", label: "My Bookings" },
+  { href: "/dashboard/bookings", label: "My Bookings" },
   { href: "/dashboard/preferences", label: "Beauty Profile" },
 ]
 
@@ -37,18 +37,18 @@ export function Footer() {
               perfect look, just a tap away.
             </p>
             <div className="flex gap-3">
-              <Link href="#" className="text-gray-400 hover:text-glowgo-pink transition-colors" aria-label="Instagram">
+              <span className="cursor-not-allowed text-gray-300" aria-label="Instagram coming after the demo" title="Social channels coming after the demo">
                 <Camera className="w-5 h-5" />
-              </Link>
-              <Link href="#" className="text-gray-400 hover:text-glowgo-pink transition-colors" aria-label="Facebook">
+              </span>
+              <span className="cursor-not-allowed text-gray-300" aria-label="Facebook coming after the demo" title="Social channels coming after the demo">
                 <Globe className="w-5 h-5" />
-              </Link>
-              <Link href="#" className="text-gray-400 hover:text-glowgo-pink transition-colors" aria-label="Twitter">
+              </span>
+              <span className="cursor-not-allowed text-gray-300" aria-label="Community channel coming after the demo" title="Social channels coming after the demo">
                 <MessageCircle className="w-5 h-5" />
-              </Link>
-              <Link href="#" className="text-gray-400 hover:text-glowgo-pink transition-colors" aria-label="Youtube">
+              </span>
+              <span className="cursor-not-allowed text-gray-300" aria-label="YouTube coming after the demo" title="Social channels coming after the demo">
                 <Video className="w-5 h-5" />
-              </Link>
+              </span>
             </div>
           </div>
 
@@ -101,10 +101,14 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-rose-100">
-          <p className="text-center text-xs text-gray-400">
+        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-rose-100 pt-6 sm:flex-row">
+          <p className="text-xs text-gray-400">
             &copy; {new Date().getFullYear()} GlowGo Mumbai. All rights reserved. Made with love for Mumbai.
           </p>
+          <div className="flex gap-4 text-xs">
+            <Link href="/terms" className="text-gray-400 hover:text-gray-700">Terms</Link>
+            <Link href="/privacy" className="text-gray-400 hover:text-gray-700">Privacy</Link>
+          </div>
         </div>
       </div>
     </footer>

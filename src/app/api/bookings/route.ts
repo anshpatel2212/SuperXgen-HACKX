@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { Booking, BookingStatus } from '@/types'
-import { SALONS, SERVICES } from '@/data'
+import { OFFERS, SALONS, SERVICES } from '@/data'
 import { bookingsStore } from '@/lib/store'
+import { createBookingSchema } from '@/lib/validation/booking'
 
 export async function GET(req: NextRequest) {
   try {
@@ -56,7 +57,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const result = createBookingSchema.safeParse(await req.json())
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          error: result.error.issues[0]?.message || 'Invalid booking details',
+          issues: result.error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      )
+    }
+
     const {
       user_id,
       salon_id,
@@ -66,14 +78,8 @@ export async function POST(req: NextRequest) {
       service_mode,
       address_text,
       notes,
-    } = body
-
-    if (!user_id || !salon_id || !service_id || !booking_date) {
-      return NextResponse.json(
-        { error: 'Missing required fields: user_id, salon_id, service_id, booking_date' },
-        { status: 400 }
-      )
-    }
+      offer_id,
+    } = result.data
 
     const salon = SALONS.find((s) => s.id === salon_id)
     if (!salon) {
@@ -84,14 +90,45 @@ export async function POST(req: NextRequest) {
     }
 
     const service = SERVICES.find((s) => s.id === service_id)
-    if (!service) {
+    if (!service || service.salon_id !== salon_id) {
       return NextResponse.json(
-        { error: 'Service not found' },
-        { status: 404 }
+        { error: 'This service is not available at the selected salon' },
+        { status: 400 }
       )
     }
 
-    const finalPrice = service.final_price || (service.price - (service.price * (service.discount_percent || 0) / 100))
+    const basePrice = service.final_price || (service.price - (service.price * (service.discount_percent || 0) / 100))
+    const now = Date.now()
+    const offer = offer_id
+      ? OFFERS.find(
+          (candidate) =>
+            candidate.id === offer_id &&
+            candidate.salon_id === salon_id &&
+            candidate.is_active &&
+            new Date(candidate.valid_from).getTime() <= now &&
+            new Date(candidate.valid_till).getTime() >= now
+        )
+      : null
+
+    if (offer_id && !offer) {
+      return NextResponse.json(
+        { error: 'The selected offer is no longer valid' },
+        { status: 400 }
+      )
+    }
+
+    if (offer && basePrice < offer.min_purchase) {
+      return NextResponse.json(
+        { error: `This offer requires a minimum purchase of ₹${offer.min_purchase}` },
+        { status: 400 }
+      )
+    }
+
+    const discount = offer
+      ? offer.discount_type === 'percentage'
+        ? Math.min(basePrice * (offer.discount_value / 100), offer.max_discount || basePrice)
+        : Math.min(offer.discount_value, offer.max_discount || offer.discount_value)
+      : 0
 
     const booking: Booking = {
       id: `b${Date.now()}`,
@@ -100,13 +137,13 @@ export async function POST(req: NextRequest) {
       service_id,
       slot_id: null,
       booking_date,
-      booking_time: booking_time || '10:00',
+      booking_time,
       status: 'pending',
-      total_price: finalPrice,
-      applied_offer_id: null,
-      service_mode: service_mode || 'salon',
-      address_text: address_text || '',
-      notes: notes || '',
+      total_price: Math.max(0, basePrice - discount),
+      applied_offer_id: offer?.id || null,
+      service_mode,
+      address_text,
+      notes,
       created_at: new Date().toISOString(),
       confirmed_at: null,
       completed_at: null,

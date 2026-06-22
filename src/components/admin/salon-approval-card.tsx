@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/shared/status-badge"
-import { formatDate, getInitials } from "@/lib/utils"
+import { getInitials } from "@/lib/utils"
 import { MapPin, Star, Phone, Check, X, Sparkles } from "lucide-react"
 import type { Salon } from "@/types"
 

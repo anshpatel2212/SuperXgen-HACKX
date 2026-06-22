@@ -1,25 +1,22 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import Link from "next/link"
+import { Suspense, useState, useMemo } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   Search,
   SlidersHorizontal,
   Star,
   X,
-  Map,
   LayoutGrid,
   ChevronDown,
   Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
 import { SalonCard } from "@/components/salon/salon-card"
-import { SALONS } from "@/data"
+import { SALONS, SERVICES } from "@/data"
 import { MUMBAI_AREAS, SERVICE_CATEGORIES, cn } from "@/lib/utils"
 import type { SearchFilters } from "@/types"
 
@@ -37,25 +34,69 @@ const defaultFilters: SearchFilters = {
   sort_by: "popularity",
 }
 
+function getInitialFilters(searchParams: URLSearchParams): SearchFilters {
+  const minPrice = Number(searchParams.get("minPrice"))
+  const maxPrice = Number(searchParams.get("maxPrice"))
+  const minRating = Number(searchParams.get("rating"))
+
+  return {
+    ...defaultFilters,
+    query: searchParams.get("q") || "",
+    city: searchParams.get("city") || defaultFilters.city,
+    area: searchParams.get("area") || "",
+    service_type: searchParams.get("service") || "",
+    min_price: Number.isFinite(minPrice) && minPrice > 0 ? minPrice : 0,
+    max_price: Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : defaultFilters.max_price,
+    min_rating: Number.isFinite(minRating) && minRating > 0 ? minRating : 0,
+  }
+}
+
 export default function ExplorePage() {
-  const [filters, setFilters] = useState<SearchFilters>(defaultFilters)
-  const [isLoading, setIsLoading] = useState(false)
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] bg-glowgo-cream/20" />}>
+      <ExplorePageFromUrl />
+    </Suspense>
+  )
+}
+
+function ExplorePageFromUrl() {
+  const searchParams = useSearchParams()
+  const searchKey = searchParams.toString()
+
+  return <ExploreResults key={searchKey} initialFilters={getInitialFilters(new URLSearchParams(searchKey))} />
+}
+
+function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
+  const [filters, setFilters] = useState<SearchFilters>(initialFilters)
   const [visibleCount, setVisibleCount] = useState(8)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
-  const [viewMode, setViewMode] = useState<"grid" | "map">("grid")
 
   const filteredSalons = useMemo(() => {
     let result = [...SALONS]
 
     if (filters.query) {
       const q = filters.query.toLowerCase()
+      const matchingSalonIds = new Set(
+        SERVICES.filter(
+          (service) =>
+            service.active &&
+            (service.name.toLowerCase().includes(q) ||
+              service.category.toLowerCase().includes(q) ||
+              service.description.toLowerCase().includes(q))
+        ).map((service) => service.salon_id)
+      )
       result = result.filter(
         (s) =>
           s.name.toLowerCase().includes(q) ||
           s.tagline.toLowerCase().includes(q) ||
           s.area.toLowerCase().includes(q) ||
-          s.description.toLowerCase().includes(q)
+          s.description.toLowerCase().includes(q) ||
+          matchingSalonIds.has(s.id)
       )
+    }
+
+    if (filters.city) {
+      result = result.filter((s) => s.city.toLowerCase() === filters.city.toLowerCase())
     }
 
     if (filters.area) {
@@ -63,23 +104,25 @@ export default function ExplorePage() {
     }
 
     if (filters.service_type) {
-      result = result.filter((s) =>
-        s.description.toLowerCase().includes(filters.service_type.toLowerCase())
+      const serviceQuery = filters.service_type.toLowerCase()
+      const matchingSalonIds = new Set(
+        SERVICES.filter(
+          (service) =>
+            service.active &&
+            (service.category.toLowerCase().includes(serviceQuery) ||
+              service.name.toLowerCase().includes(serviceQuery) ||
+              serviceQuery.includes(service.category.toLowerCase()))
+        ).map((service) => service.salon_id)
       )
+      result = result.filter((salon) => matchingSalonIds.has(salon.id))
     }
 
-    if (filters.min_price > 0) {
-      result = result.filter((s) => {
-        const min = parseInt(s.price_range.replace(/[₹,\s]/g, "").split("-")[0]) || 0
-        return min >= filters.min_price
-      })
-    }
-
-    if (filters.max_price < 100000) {
+    if (filters.min_price > 0 || filters.max_price < 100000) {
       result = result.filter((s) => {
         const parts = s.price_range.replace(/[₹,\s]/g, "").split("-")
-        const max = parseInt(parts[1] || parts[0]) || 0
-        return max <= filters.max_price
+        const salonMin = parseInt(parts[0]) || 0
+        const salonMax = parseInt(parts[1] || parts[0]) || 0
+        return salonMax >= filters.min_price && salonMin <= filters.max_price
       })
     }
 
@@ -88,7 +131,7 @@ export default function ExplorePage() {
     }
 
     if (filters.gender) {
-      result = result.filter((s) => s.gender === filters.gender)
+      result = result.filter((s) => s.gender === filters.gender || s.gender === "unisex")
     }
 
     if (filters.luxury_level) {
@@ -166,8 +209,6 @@ export default function ExplorePage() {
             updateFilter={updateFilter}
             clearFilters={clearFilters}
             activeFilterCount={activeFilterCount}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
             showMobileFilters={showMobileFilters}
             setShowMobileFilters={setShowMobileFilters}
             toggleRating={toggleRating}
@@ -183,18 +224,7 @@ export default function ExplorePage() {
           </p>
         </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="space-y-3">
-                <Skeleton className="aspect-[4/3] rounded-xl" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ))}
-          </div>
-        ) : visibleSalons.length === 0 ? (
+        {visibleSalons.length === 0 ? (
           <EmptyState clearFilters={clearFilters} />
         ) : (
           <>
@@ -279,8 +309,6 @@ function FilterBar({
   updateFilter,
   clearFilters,
   activeFilterCount,
-  viewMode,
-  setViewMode,
   showMobileFilters,
   setShowMobileFilters,
   toggleRating,
@@ -289,8 +317,6 @@ function FilterBar({
   updateFilter: (key: keyof SearchFilters, value: string | number | boolean | null) => void
   clearFilters: () => void
   activeFilterCount: number
-  viewMode: "grid" | "map"
-  setViewMode: (v: "grid" | "map") => void
   showMobileFilters: boolean
   setShowMobileFilters: (v: boolean) => void
   toggleRating: (r: number) => void
@@ -501,25 +527,16 @@ function FilterBar({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={cn(
-                "p-1.5 rounded-lg transition-colors",
-                viewMode === "grid" ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-gray-600"
-              )}
-              aria-label="Grid view"
-            >
+            <span className="rounded-lg bg-gray-100 p-1.5 text-gray-900" aria-label="Grid view active">
               <LayoutGrid className="w-4 h-4" />
-            </button>
+            </span>
             <button
-              onClick={() => setViewMode("map")}
-              className={cn(
-                "p-1.5 rounded-lg transition-colors",
-                viewMode === "map" ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-gray-600"
-              )}
-              aria-label="Map view"
+              type="button"
+              disabled
+              className="cursor-not-allowed rounded-lg px-2 py-1.5 text-xs text-gray-400"
+              title="Map view requires the planned maps integration"
             >
-              <Map className="w-4 h-4" />
+              Map view · demo only
             </button>
           </div>
         </div>
@@ -557,11 +574,12 @@ function FilterBar({
           </select>
 
           <button
-            onClick={() => setViewMode(viewMode === "grid" ? "map" : "grid")}
-            className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-700"
-            aria-label="Toggle view"
+            type="button"
+            disabled
+            className="cursor-not-allowed rounded-lg border border-gray-200 px-2 py-2 text-xs text-gray-400"
+            title="Map view requires the planned maps integration"
           >
-            {viewMode === "grid" ? <Map className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
+            Map · demo
           </button>
         </div>
       </div>
@@ -577,7 +595,7 @@ function EmptyState({ clearFilters }: { clearFilters: () => void }) {
       </div>
       <h3 className="text-xl font-semibold text-gray-900 mb-2">No Salons Found</h3>
       <p className="text-gray-500 max-w-sm mx-auto mb-6">
-        We couldn't find any salons matching your filters. Try adjusting your search criteria.
+        We couldn&apos;t find any salons matching your filters. Try adjusting your search criteria.
       </p>
       <Button variant="outline" className="rounded-full" onClick={clearFilters}>
         Clear All Filters

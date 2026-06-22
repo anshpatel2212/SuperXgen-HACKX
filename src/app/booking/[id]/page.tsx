@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { useParams } from "next/navigation"
+import { Suspense, useState, useMemo } from "react"
+import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
   Sparkles, ChevronLeft, ChevronRight, Clock, MapPin,
-  CheckCircle2, Home, Calendar, Tag, MessageSquare,
+  CheckCircle2, Home, Tag,
   Star, Shield, Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,9 +15,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { cn, formatPrice, formatDate, formatTime, getInitials } from "@/lib/utils"
+import { cn, formatPrice, formatDate, formatTime } from "@/lib/utils"
 import { SALONS, SERVICES, OFFERS } from "@/data"
-import type { Service } from "@/types"
 import { createBooking } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
 
@@ -43,14 +42,32 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 export default function BookingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] bg-glowgo-cream/20" />}>
+      <BookingPageContent />
+    </Suspense>
+  )
+}
+
+function BookingPageContent() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const salonId = params.id as string
   const { user } = useAuth()
+  const requestedServiceId = searchParams.get("service")
+  const requestedDate = searchParams.get("date")
+  const requestedTime = searchParams.get("time")
+  const initialServiceId =
+    requestedServiceId && SERVICES.some((service) => service.id === requestedServiceId && service.salon_id === salonId)
+      ? requestedServiceId
+      : null
+  const initialDate = requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : null
+  const initialTime = requestedTime && TIME_SLOTS.includes(requestedTime) ? requestedTime : null
 
-  const [step, setStep] = useState(1)
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedTime, setSelectedTime] = useState<string | null>(null)
+  const [step, setStep] = useState(initialServiceId && initialDate && initialTime ? 3 : initialServiceId ? 2 : 1)
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(initialServiceId)
+  const [selectedDate, setSelectedDate] = useState<string | null>(initialDate)
+  const [selectedTime, setSelectedTime] = useState<string | null>(initialTime)
   const [isHomeService, setIsHomeService] = useState(false)
   const [homeAddress, setHomeAddress] = useState("")
   const [couponCode, setCouponCode] = useState("")
@@ -78,8 +95,13 @@ export default function BookingPage() {
 
   const handleApplyCoupon = () => {
     setCouponError("")
+    const now = Date.now()
     const offer = salonOffers.find(
-      (o) => o.coupon_code.toLowerCase() === couponCode.toLowerCase() && o.is_active
+      (candidate) =>
+        candidate.coupon_code.toLowerCase() === couponCode.trim().toLowerCase() &&
+        candidate.is_active &&
+        new Date(candidate.valid_from).getTime() <= now &&
+        new Date(candidate.valid_till).getTime() >= now
     )
     if (offer) {
       if (totalAmount >= offer.min_purchase) {
@@ -93,7 +115,20 @@ export default function BookingPage() {
   }
 
   const handleConfirm = async () => {
-    if (!selectedServiceId || !selectedDate || !selectedTime || !user) return
+    if (!user) {
+      setError("Please sign in before confirming your booking.")
+      return
+    }
+    if (!selectedServiceId || !selectedDate || !selectedTime) {
+      setError("Please complete the service, date, and time selections.")
+      return
+    }
+    if (isHomeService && homeAddress.trim().length < 10) {
+      setError("Please enter a complete home-service address.")
+      setStep(2)
+      return
+    }
+
     setIsSubmitting(true)
     setError(null)
     try {
@@ -102,10 +137,11 @@ export default function BookingPage() {
         salon_id: salonId,
         service_id: selectedServiceId,
         booking_date: selectedDate,
-        start_time: selectedTime,
-        is_home_service: isHomeService,
-        home_address: isHomeService ? homeAddress : "",
+        booking_time: selectedTime,
+        service_mode: isHomeService ? "home" : "salon",
+        address_text: isHomeService ? homeAddress.trim() : "",
         notes,
+        offer_id: couponApplied?.id || null,
       })
       setIsSubmitting(false)
       setIsSuccess(true)
@@ -143,9 +179,9 @@ export default function BookingPage() {
               </div>
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Request Sent!</h2>
           <p className="text-gray-500 mb-6">
-            Your appointment at {salon.name} has been booked successfully.
+            {salon.name} has received your appointment request and can now confirm it.
           </p>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6 text-left space-y-2">
             <div className="flex items-center justify-between text-sm">
@@ -166,7 +202,7 @@ export default function BookingPage() {
             </div>
             <Separator />
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Total Paid</span>
+              <span className="text-gray-500">Amount Due</span>
               <span className="font-semibold text-gray-900">{formatPrice(finalAmount)}</span>
             </div>
           </div>
@@ -392,6 +428,9 @@ export default function BookingPage() {
                       onChange={(e) => setHomeAddress(e.target.value)}
                       className="min-h-[80px]"
                     />
+                    {homeAddress.trim().length < 10 && (
+                      <p className="text-xs text-amber-600">Enter at least 10 characters so the salon can locate you.</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -403,7 +442,7 @@ export default function BookingPage() {
                 Back
               </Button>
               <Button
-                disabled={!selectedDate || !selectedTime}
+                disabled={!selectedDate || !selectedTime || (isHomeService && homeAddress.trim().length < 10)}
                 onClick={() => setStep(3)}
                 className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm"
               >
@@ -531,12 +570,19 @@ export default function BookingPage() {
             <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50">
               <Shield className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
               <p className="text-xs text-blue-700">
-                Your appointment is securely booked. You can cancel or reschedule up to 2 hours before the scheduled time.
+                This sends a pending appointment request to the salon. Payment is not collected in this demo.
               </p>
             </div>
 
             {error && (
-              <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>
+              <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <p>{error}</p>
+                {!user && (
+                  <Link href="/login" className="mt-1 inline-block font-medium underline underline-offset-2">
+                    Sign in to continue
+                  </Link>
+                )}
+              </div>
             )}
 
             <div className="flex justify-between pt-2">
