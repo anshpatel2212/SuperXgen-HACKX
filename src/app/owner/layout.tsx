@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { RoleGuard } from "@/components/auth/role-guard"
 import { useAuth } from "@/lib/auth-context"
 import { OwnerSidebar } from "@/components/owner/owner-sidebar"
 import { Button } from "@/components/ui/button"
@@ -39,12 +40,7 @@ export default function OwnerLayout({
   const [mobileOpen, setMobileOpen] = useState(false)
   const ownerSalons = SALONS.filter((s) => s.owner_id === (user?.id || ""))
   const [selectedSalon, setSelectedSalon] = useState("")
-
-  useEffect(() => {
-    if (ownerSalons.length > 0 && !selectedSalon) {
-      setSelectedSalon(ownerSalons[0].id)
-    }
-  }, [ownerSalons, selectedSalon])
+  const activeSalon = selectedSalon || ownerSalons[0]?.id || ""
 
   if (isLoading) {
     return (
@@ -55,13 +51,14 @@ export default function OwnerLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-glowgo-cream/30">
-      <aside className="hidden w-60 shrink-0 border-r bg-background md:block">
-        <OwnerSidebar />
-      </aside>
+    <RoleGuard requiredRole="owner">
+      <div className="flex min-h-screen bg-glowgo-cream/30">
+        <aside className="hidden w-60 shrink-0 border-r bg-background md:block">
+          <OwnerSidebar />
+        </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md">
+        <div className="flex flex-1 flex-col">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger className="inline-flex items-center justify-center rounded-lg size-7 hover:bg-muted hover:text-foreground transition-colors">
               <Menu className="size-4" />
@@ -73,7 +70,7 @@ export default function OwnerLayout({
 
           <div className="hidden sm:block">
             {ownerSalons.length > 0 ? (
-              <Select value={selectedSalon} onValueChange={(v) => v && setSelectedSalon(v)}>
+              <Select value={activeSalon} onValueChange={(v) => v && setSelectedSalon(v)}>
                 <SelectTrigger size="sm" className="w-48">
                   <SelectValue />
                 </SelectTrigger>
@@ -91,7 +88,13 @@ export default function OwnerLayout({
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="icon-sm">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Notifications unavailable in demo"
+              disabled
+              title="Notifications are planned after the demo"
+            >
               <Bell className="size-4" />
             </Button>
             <DropdownMenu>
@@ -105,11 +108,11 @@ export default function OwnerLayout({
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>{user?.full_name || "Owner"}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem disabled>
                     <User className="size-4" />
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem disabled>
                     <Settings className="size-4" />
                     Settings
                   </DropdownMenuItem>
@@ -122,10 +125,11 @@ export default function OwnerLayout({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </header>
+          </header>
 
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   )
 }
