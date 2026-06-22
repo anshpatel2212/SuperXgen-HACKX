@@ -34,11 +34,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { SALONS, SERVICES, REVIEWS, OFFERS } from "@/data"
+import { SALONS, SERVICES, REVIEWS } from "@/data"
 import { formatPrice, formatDate, formatTime, getInitials, cn } from "@/lib/utils"
 import { createReview } from "@/lib/data-service"
 import { useAuth } from "@/lib/auth-context"
 import { useDemoFavorites } from "@/lib/demo-favorites"
+import { useDemoOffers } from "@/lib/demo-offers"
 import { ReviewForm } from "@/components/salon/review-form"
 import type { Service, Review, Offer, Salon } from "@/types"
 
@@ -99,13 +100,6 @@ export default function SalonDetailPage() {
   const salon = SALONS.find((s) => s.id === id)
   const salonServices = SERVICES.filter((s) => s.salon_id === id)
   const salonReviews = REVIEWS.filter((r) => r.salon_id === id)
-  const salonOffers = OFFERS.filter(
-    (offer) =>
-      offer.salon_id === id &&
-      offer.is_active &&
-      offer.valid_from <= DEMO_CURRENT_DATE &&
-      offer.valid_till >= DEMO_CURRENT_DATE
-  )
 
   if (!salon) {
     return (
@@ -121,20 +115,25 @@ export default function SalonDetailPage() {
     )
   }
 
-  return <SalonDetailContent salon={salon} services={salonServices} reviews={salonReviews} offers={salonOffers} />
+  return <SalonDetailContent salon={salon} services={salonServices} reviews={salonReviews} />
 }
 
 function SalonDetailContent({
   salon,
   services,
   reviews,
-  offers,
 }: {
   salon: Salon
   services: Service[]
   reviews: Review[]
-  offers: Offer[]
 }) {
+  const { offers: salonOffers } = useDemoOffers(salon.id)
+  const activeSalonOffers = salonOffers.filter(
+    (offer) =>
+      offer.is_active &&
+      offer.valid_from <= DEMO_CURRENT_DATE &&
+      offer.valid_till >= DEMO_CURRENT_DATE
+  )
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [selectedDate, setSelectedDate] = useState(NEXT_7_DAYS[0].date)
@@ -218,7 +217,7 @@ function SalonDetailContent({
                   Reviews ({currentReviews.length})
                 </TabsTrigger>
                 <TabsTrigger value="offers" className="flex-1 text-xs sm:text-sm py-2">
-                  Offers ({offers.length})
+                  Offers ({activeSalonOffers.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -251,7 +250,7 @@ function SalonDetailContent({
               </TabsContent>
 
               <TabsContent value="offers" className="mt-6">
-                <OffersTab offers={offers} />
+                <OffersTab offers={activeSalonOffers} />
               </TabsContent>
             </Tabs>
           </div>

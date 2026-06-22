@@ -16,9 +16,11 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn, formatPrice, formatDate, formatTime } from "@/lib/utils"
-import { SALONS, SERVICES, OFFERS } from "@/data"
+import { SALONS, SERVICES } from "@/data"
 import { createBooking } from "@/lib/api-client"
+import { useDemoOffers } from "@/lib/demo-offers"
 import { useAuth } from "@/lib/auth-context"
+import type { Offer } from "@/types"
 
 const TIME_SLOTS = [
   "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
@@ -54,6 +56,7 @@ function BookingPageContent() {
   const searchParams = useSearchParams()
   const salonId = params.id as string
   const { user } = useAuth()
+  const { offers: salonOffers } = useDemoOffers(salonId)
   const requestedServiceId = searchParams.get("service")
   const requestedDate = searchParams.get("date")
   const requestedTime = searchParams.get("time")
@@ -71,7 +74,7 @@ function BookingPageContent() {
   const [isHomeService, setIsHomeService] = useState(false)
   const [homeAddress, setHomeAddress] = useState("")
   const [couponCode, setCouponCode] = useState("")
-  const [couponApplied, setCouponApplied] = useState<typeof OFFERS[0] | null>(null)
+  const [couponApplied, setCouponApplied] = useState<Offer | null>(null)
   const [couponError, setCouponError] = useState("")
   const [notes, setNotes] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -80,7 +83,6 @@ function BookingPageContent() {
 
   const salon = SALONS.find((s) => s.id === salonId)
   const salonServices = SERVICES.filter((s) => s.salon_id === salonId)
-  const salonOffers = OFFERS.filter((o) => o.salon_id === salonId)
 
   const selectedService = salonServices.find((s) => s.id === selectedServiceId)
   const days = useMemo(() => getNext7Days(), [])
@@ -142,6 +144,7 @@ function BookingPageContent() {
         address_text: isHomeService ? homeAddress.trim() : "",
         notes,
         offer_id: couponApplied?.id || null,
+        demo_offer: couponApplied || undefined,
       })
       setIsSubmitting(false)
       setIsSuccess(true)

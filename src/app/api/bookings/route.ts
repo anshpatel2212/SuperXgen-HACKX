@@ -1,8 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Booking, BookingStatus } from '@/types'
+import type { Booking, BookingStatus, Offer } from '@/types'
 import { OFFERS, SALONS, SERVICES } from '@/data'
 import { bookingsStore } from '@/lib/store'
 import { createBookingSchema } from '@/lib/validation/booking'
+
+function resolveOffer(
+  offerId: string,
+  salonId: string,
+  demoOffer?: Offer
+): Offer | null {
+  const now = Date.now()
+  const seededOffer = OFFERS.find(
+    (candidate) =>
+      candidate.id === offerId &&
+      candidate.salon_id === salonId &&
+      candidate.is_active &&
+      new Date(candidate.valid_from).getTime() <= now &&
+      new Date(candidate.valid_till).getTime() >= now
+  )
+  if (seededOffer) return seededOffer
+
+  if (
+    demoOffer &&
+    demoOffer.id === offerId &&
+    demoOffer.salon_id === salonId &&
+    demoOffer.is_active &&
+    new Date(demoOffer.valid_from).getTime() <= now &&
+    new Date(demoOffer.valid_till).getTime() >= now
+  ) {
+    return demoOffer
+  }
+
+  return null
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -79,6 +109,7 @@ export async function POST(req: NextRequest) {
       address_text,
       notes,
       offer_id,
+      demo_offer,
     } = result.data
 
     const salon = SALONS.find((s) => s.id === salon_id)
@@ -98,17 +129,7 @@ export async function POST(req: NextRequest) {
     }
 
     const basePrice = service.final_price || (service.price - (service.price * (service.discount_percent || 0) / 100))
-    const now = Date.now()
-    const offer = offer_id
-      ? OFFERS.find(
-          (candidate) =>
-            candidate.id === offer_id &&
-            candidate.salon_id === salon_id &&
-            candidate.is_active &&
-            new Date(candidate.valid_from).getTime() <= now &&
-            new Date(candidate.valid_till).getTime() >= now
-        )
-      : null
+    const offer = offer_id ? resolveOffer(offer_id, salon_id, demo_offer as Offer | undefined) : null
 
     if (offer_id && !offer) {
       return NextResponse.json(

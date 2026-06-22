@@ -63,6 +63,10 @@ function writeOffers(offers: Offer[]) {
   window.dispatchEvent(new Event(OFFERS_EVENT))
 }
 
+export function getDemoOffers(): Offer[] {
+  return parseSnapshot(getSnapshot()).offers
+}
+
 export function createDemoOffer(data: Omit<Offer, "id" | "created_at" | "is_active">): Offer {
   const state = parseSnapshot(getSnapshot())
   const offer: Offer = {
