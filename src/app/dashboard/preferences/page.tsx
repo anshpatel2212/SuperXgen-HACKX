@@ -91,16 +91,23 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
               className="bg-glowgo-pink/10 text-glowgo-pink text-[10px]"
             >
               {item}
-              <button
-                type="button"
+              <span
+                role="button"
+                tabIndex={0}
                 onClick={(e) => {
                   e.stopPropagation()
                   toggleOption(item)
                 }}
-                className="ml-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation()
+                    toggleOption(item)
+                  }
+                }}
+                className="ml-1 cursor-pointer"
               >
                 <X className="w-2.5 h-2.5" />
-              </button>
+              </span>
             </Badge>
           ))}
           {selected.length > 3 && (
