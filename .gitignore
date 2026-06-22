@@ -42,3 +42,4 @@ yarn-error.log*
 next-env.d.ts
 .rtk/
 
+.agents/rules/git-commit-rules.md
