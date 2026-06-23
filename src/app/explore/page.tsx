@@ -16,8 +16,8 @@ import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { SalonCard } from "@/components/salon/salon-card"
-import { SALONS, SERVICES } from "@/data"
-import { MUMBAI_AREAS, SERVICE_CATEGORIES, cn } from "@/lib/utils"
+import { CATEGORIES, SALONS, SERVICES } from "@/data"
+import { MUMBAI_AREAS, MUMBAI_CITIES, SERVICE_CATEGORIES, cn, parsePriceRange } from "@/lib/utils"
 import type { SearchFilters } from "@/types"
 
 const defaultFilters: SearchFilters = {
@@ -37,18 +37,85 @@ const defaultFilters: SearchFilters = {
 function getInitialFilters(searchParams: URLSearchParams): SearchFilters {
   const minPrice = Number(searchParams.get("minPrice"))
   const maxPrice = Number(searchParams.get("maxPrice"))
-  const minRating = Number(searchParams.get("rating"))
+  const minRating = Number(searchParams.get("rating") || searchParams.get("minRating"))
+  const categoryParam = searchParams.get("category")?.trim().toLowerCase() || ""
+  const category = CATEGORIES.find(
+    (item) =>
+      item.slug.toLowerCase() === categoryParam ||
+      item.name.toLowerCase() === categoryParam
+  )
+  const categoryService = category?.name === "Bridal" ? "Bridal Makeup" : category?.name
+  const service = (searchParams.get("service") || categoryService || "").trim()
+  const cityParam = searchParams.get("city") || ""
+  const areaParam = searchParams.get("area") || ""
+  const genderParam = searchParams.get("gender")
+  const luxuryParam = searchParams.get("luxury")
+  const sortParam = searchParams.get("sort")
+  const validSorts: SearchFilters["sort_by"][] = [
+    "popularity",
+    "rating",
+    "price_low",
+    "price_high",
+    "trust_score",
+  ]
 
   return {
     ...defaultFilters,
-    query: searchParams.get("q") || "",
-    city: searchParams.get("city") || defaultFilters.city,
-    area: searchParams.get("area") || "",
-    service_type: searchParams.get("service") || "",
+    query: (searchParams.get("q") || "").trim().slice(0, 100),
+    city: MUMBAI_CITIES.includes(cityParam) ? cityParam : defaultFilters.city,
+    area: MUMBAI_AREAS.includes(areaParam) ? areaParam : "",
+    service_type: service.slice(0, 100),
     min_price: Number.isFinite(minPrice) && minPrice > 0 ? minPrice : 0,
     max_price: Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : defaultFilters.max_price,
-    min_rating: Number.isFinite(minRating) && minRating > 0 ? minRating : 0,
+    min_rating: Number.isFinite(minRating) && minRating > 0 && minRating <= 5 ? minRating : 0,
+    gender: genderParam === "women" || genderParam === "men" || genderParam === "unisex"
+      ? genderParam
+      : "",
+    luxury_level:
+      luxuryParam === "budget" ||
+      luxuryParam === "mid" ||
+      luxuryParam === "premium" ||
+      luxuryParam === "luxury"
+        ? luxuryParam
+        : "",
+    offers_home_service: searchParams.get("homeService") === "true" ? true : null,
+    sort_by: validSorts.includes(sortParam as SearchFilters["sort_by"])
+      ? sortParam as SearchFilters["sort_by"]
+      : defaultFilters.sort_by,
   }
+}
+
+function matchesServiceType(service: (typeof SERVICES)[number], query: string) {
+  if (!query) return true
+  const normalized = query.toLowerCase()
+  return (
+    service.category.toLowerCase().includes(normalized) ||
+    service.name.toLowerCase().includes(normalized) ||
+    normalized.includes(service.category.toLowerCase())
+  )
+}
+
+function getRelevantServices(salonId: string, filters: SearchFilters) {
+  return SERVICES.filter(
+    (service) =>
+      service.active &&
+      service.salon_id === salonId &&
+      matchesServiceType(service, filters.service_type) &&
+      (
+        !filters.gender ||
+        service.gender === filters.gender ||
+        service.gender === "unisex"
+      )
+  )
+}
+
+function getSalonPriceRange(salonId: string, filters: SearchFilters) {
+  const services = getRelevantServices(salonId, filters)
+  const prices = services.map(
+    (service) => service.final_price || service.discounted_price || service.price
+  )
+  if (prices.length === 0) return null
+  return { min: Math.min(...prices), max: Math.max(...prices) }
 }
 
 export default function ExplorePage() {
@@ -104,34 +171,23 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
     }
 
     if (filters.service_type) {
-      const serviceQuery = filters.service_type.toLowerCase()
-      const matchingSalonIds = new Set(
-        SERVICES.filter(
-          (service) =>
-            service.active &&
-            (service.category.toLowerCase().includes(serviceQuery) ||
-              service.name.toLowerCase().includes(serviceQuery) ||
-              serviceQuery.includes(service.category.toLowerCase()))
-        ).map((service) => service.salon_id)
-      )
-      result = result.filter((salon) => matchingSalonIds.has(salon.id))
+      result = result.filter((salon) => getRelevantServices(salon.id, filters).length > 0)
+    }
+
+    if (filters.gender && !filters.service_type) {
+      result = result.filter((salon) => getRelevantServices(salon.id, filters).length > 0)
     }
 
     if (filters.min_price > 0 || filters.max_price < 100000) {
-      result = result.filter((s) => {
-        const parts = s.price_range.replace(/[₹,\s]/g, "").split("-")
-        const salonMin = parseInt(parts[0]) || 0
-        const salonMax = parseInt(parts[1] || parts[0]) || 0
-        return salonMax >= filters.min_price && salonMin <= filters.max_price
+      result = result.filter((salon) => {
+        const serviceRange = getSalonPriceRange(salon.id, filters)
+        const range = serviceRange || parsePriceRange(salon.price_range)
+        return range.max >= filters.min_price && range.min <= filters.max_price
       })
     }
 
     if (filters.min_rating > 0) {
       result = result.filter((s) => s.rating_avg >= filters.min_rating)
-    }
-
-    if (filters.gender) {
-      result = result.filter((s) => s.gender === filters.gender || s.gender === "unisex")
     }
 
     if (filters.luxury_level) {
@@ -144,24 +200,24 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
 
     switch (filters.sort_by) {
       case "rating":
-        result.sort((a, b) => b.rating_avg - a.rating_avg)
+        result.sort((a, b) => b.rating_avg - a.rating_avg || a.name.localeCompare(b.name))
         break
       case "price_low":
         result.sort((a, b) => {
-          const aMin = parseInt(a.price_range.replace(/[₹,\s]/g, "").split("-")[0]) || 0
-          const bMin = parseInt(b.price_range.replace(/[₹,\s]/g, "").split("-")[0]) || 0
-          return aMin - bMin
+          const aMin = (getSalonPriceRange(a.id, filters) || parsePriceRange(a.price_range)).min
+          const bMin = (getSalonPriceRange(b.id, filters) || parsePriceRange(b.price_range)).min
+          return aMin - bMin || a.name.localeCompare(b.name)
         })
         break
       case "price_high":
         result.sort((a, b) => {
-          const aMin = parseInt(a.price_range.replace(/[₹,\s]/g, "").split("-")[0]) || 0
-          const bMin = parseInt(b.price_range.replace(/[₹,\s]/g, "").split("-")[0]) || 0
-          return bMin - aMin
+          const aMax = (getSalonPriceRange(a.id, filters) || parsePriceRange(a.price_range)).max
+          const bMax = (getSalonPriceRange(b.id, filters) || parsePriceRange(b.price_range)).max
+          return bMax - aMax || a.name.localeCompare(b.name)
         })
         break
       default:
-        result.sort((a, b) => b.total_bookings - a.total_bookings)
+        result.sort((a, b) => b.total_bookings - a.total_bookings || a.name.localeCompare(b.name))
     }
 
     return result
@@ -181,7 +237,7 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
   ].filter(Boolean).length
 
   const clearFilters = () => {
-    setFilters(defaultFilters)
+    setFilters({ ...defaultFilters })
     setVisibleCount(8)
   }
 
