@@ -110,6 +110,7 @@ export async function POST(req: NextRequest) {
       notes,
       offer_id,
       demo_offer,
+      slot_id,
     } = result.data
 
     const salon = SALONS.find((s) => s.id === salon_id)
@@ -156,7 +157,7 @@ export async function POST(req: NextRequest) {
       user_id,
       salon_id,
       service_id,
-      slot_id: null,
+      slot_id: slot_id || null,
       booking_date,
       booking_time,
       status: 'pending',

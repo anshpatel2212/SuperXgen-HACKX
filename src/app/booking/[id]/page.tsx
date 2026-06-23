@@ -15,19 +15,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { cn, formatPrice, formatDate, formatTime } from "@/lib/utils"
+import { cn, formatPrice, formatDate, formatTime, toDateInputValue } from "@/lib/utils"
 import { SALONS, SERVICES } from "@/data"
 import { createBooking } from "@/lib/api-client"
 import { useDemoOffers } from "@/lib/demo-offers"
+import {
+  getBookableSlots,
+  getBookableTimes,
+  useDemoSlots,
+} from "@/lib/demo-slots"
 import { useAuth } from "@/lib/auth-context"
 import type { Offer } from "@/types"
-
-const TIME_SLOTS = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
-  "18:00", "18:30", "19:00", "19:30",
-]
 
 function getNext7Days() {
   const days = []
@@ -57,6 +55,7 @@ function BookingPageContent() {
   const salonId = params.id as string
   const { user } = useAuth()
   const { offers: salonOffers } = useDemoOffers(salonId)
+  const { slots: salonSlots } = useDemoSlots(salonId)
   const requestedServiceId = searchParams.get("service")
   const requestedDate = searchParams.get("date")
   const requestedTime = searchParams.get("time")
@@ -65,9 +64,9 @@ function BookingPageContent() {
       ? requestedServiceId
       : null
   const initialDate = requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : null
-  const initialTime = requestedTime && TIME_SLOTS.includes(requestedTime) ? requestedTime : null
+  const initialTime = requestedTime && /^\d{2}:\d{2}$/.test(requestedTime) ? requestedTime : null
 
-  const [step, setStep] = useState(initialServiceId && initialDate && initialTime ? 3 : initialServiceId ? 2 : 1)
+  const [step, setStep] = useState(initialServiceId ? 2 : 1)
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(initialServiceId)
   const [selectedDate, setSelectedDate] = useState<string | null>(initialDate)
   const [selectedTime, setSelectedTime] = useState<string | null>(initialTime)
@@ -86,6 +85,22 @@ function BookingPageContent() {
 
   const selectedService = salonServices.find((s) => s.id === selectedServiceId)
   const days = useMemo(() => getNext7Days(), [])
+  const availableTimes = useMemo(
+    () =>
+      selectedDate
+        ? getBookableTimes(salonSlots, selectedDate, selectedServiceId)
+        : [],
+    [salonSlots, selectedDate, selectedServiceId]
+  )
+  const selectedSlot = useMemo(
+    () =>
+      selectedDate && selectedTime
+        ? getBookableSlots(salonSlots, selectedDate, selectedServiceId).find(
+            (slot) => slot.start_time.slice(0, 5) === selectedTime
+          ) || null
+        : null,
+    [salonSlots, selectedDate, selectedServiceId, selectedTime]
+  )
 
   const totalAmount = selectedService ? (selectedService.final_price || selectedService.price) : 0
   const discountAmount = couponApplied
@@ -121,8 +136,19 @@ function BookingPageContent() {
       setError("Please sign in before confirming your booking.")
       return
     }
-    if (!selectedServiceId || !selectedDate || !selectedTime) {
+    if (
+      !selectedServiceId ||
+      !selectedDate ||
+      !selectedTime ||
+      !availableTimes.includes(selectedTime)
+    ) {
       setError("Please complete the service, date, and time selections.")
+      setStep(2)
+      return
+    }
+    if (!selectedSlot) {
+      setError("That time is no longer available. Please choose another slot.")
+      setStep(2)
       return
     }
     if (isHomeService && homeAddress.trim().length < 10) {
@@ -145,6 +171,8 @@ function BookingPageContent() {
         notes,
         offer_id: couponApplied?.id || null,
         demo_offer: couponApplied || undefined,
+        slot_id: selectedSlot?.id || null,
+        demo_slot: selectedSlot || undefined,
       })
       setIsSubmitting(false)
       setIsSuccess(true)
@@ -298,7 +326,10 @@ function BookingPageContent() {
                     <button
                       key={service.id}
                       type="button"
-                      onClick={() => setSelectedServiceId(service.id)}
+                      onClick={() => {
+                        setSelectedServiceId(service.id)
+                        setSelectedTime(null)
+                      }}
                       className={cn(
                         "w-full text-left p-4 rounded-xl border transition-all",
                         isSelected
@@ -359,20 +390,36 @@ function BookingPageContent() {
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Select Date</h3>
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {days.map((day) => {
-                  const dateStr = day.toISOString().split("T")[0]
-                  const isToday = new Date().toISOString().split("T")[0] === dateStr
+                  const dateStr = toDateInputValue(day)
+                  const isToday = toDateInputValue() === dateStr
                   const isSelected = selectedDate === dateStr
                   return (
                     <button
                       key={dateStr}
                       type="button"
-                      onClick={() => setSelectedDate(dateStr)}
+                      disabled={
+                        getBookableTimes(
+                          salonSlots,
+                          dateStr,
+                          selectedServiceId
+                        ).length === 0
+                      }
+                      onClick={() => {
+                        setSelectedDate(dateStr)
+                        setSelectedTime(null)
+                      }}
                       className={cn(
                         "flex flex-col items-center gap-1 px-4 py-3 rounded-xl border transition-all shrink-0 min-w-[72px]",
                         isSelected
                           ? "border-glowgo-pink bg-glowgo-pink/5 ring-1 ring-glowgo-pink/20"
                           : "border-gray-100 bg-white hover:border-gray-200",
-                        isToday && "border-glowgo-pink/30"
+                        isToday && "border-glowgo-pink/30",
+                        getBookableTimes(
+                          salonSlots,
+                          dateStr,
+                          selectedServiceId
+                        ).length === 0 &&
+                          "cursor-not-allowed opacity-40"
                       )}
                     >
                       <span className="text-xs text-gray-400">{DAY_NAMES[day.getDay()]}</span>
@@ -388,28 +435,34 @@ function BookingPageContent() {
 
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Select Time</h3>
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                {TIME_SLOTS.map((time) => {
-                  const isSelected = selectedTime === time
-                  return (
-                    <button
-                      key={time}
-                      type="button"
-                      disabled={!selectedDate}
-                      onClick={() => setSelectedTime(time)}
-                      className={cn(
-                        "py-2 px-2 rounded-lg border text-sm font-medium transition-all",
-                        isSelected
-                          ? "border-glowgo-pink bg-glowgo-pink/5 text-glowgo-pink ring-1 ring-glowgo-pink/20"
-                          : "border-gray-100 bg-white text-gray-700 hover:border-gray-200",
-                        !selectedDate && "opacity-40 cursor-not-allowed"
-                      )}
-                    >
-                      {formatTime(time)}
-                    </button>
-                  )
-                })}
-              </div>
+              {selectedDate && availableTimes.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                  No available slots on this date. Choose another day.
+                </p>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                  {availableTimes.map((time) => {
+                    const isSelected = selectedTime === time
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        disabled={!selectedDate}
+                        onClick={() => setSelectedTime(time)}
+                        className={cn(
+                          "py-2 px-2 rounded-lg border text-sm font-medium transition-all",
+                          isSelected
+                            ? "border-glowgo-pink bg-glowgo-pink/5 text-glowgo-pink ring-1 ring-glowgo-pink/20"
+                            : "border-gray-100 bg-white text-gray-700 hover:border-gray-200",
+                          !selectedDate && "opacity-40 cursor-not-allowed"
+                        )}
+                      >
+                        {formatTime(time)}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {salon.offers_home_service && (
@@ -445,7 +498,12 @@ function BookingPageContent() {
                 Back
               </Button>
               <Button
-                disabled={!selectedDate || !selectedTime || (isHomeService && homeAddress.trim().length < 10)}
+                disabled={
+                  !selectedDate ||
+                  !selectedTime ||
+                  !availableTimes.includes(selectedTime) ||
+                  (isHomeService && homeAddress.trim().length < 10)
+                }
                 onClick={() => setStep(3)}
                 className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm"
               >

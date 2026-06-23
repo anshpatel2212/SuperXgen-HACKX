@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react"
 import { SALONS, SERVICES } from "@/data"
+import { releaseDemoSlot } from "@/lib/demo-slots"
 import type { Booking, BookingStatus } from "@/types"
 
 const BOOKINGS_KEY = "glowgo_demo_bookings_v1"
@@ -125,6 +126,15 @@ export function updateDemoBookingStatus(id: string, nextStatus: BookingStatus): 
 
   bookings[index] = updated
   writeBookings(bookings)
+
+  if (
+    nextStatus === "cancelled" &&
+    current.status !== "cancelled" &&
+    current.slot_id
+  ) {
+    releaseDemoSlot(current.slot_id)
+  }
+
   return enrichBooking(updated)
 }
 
