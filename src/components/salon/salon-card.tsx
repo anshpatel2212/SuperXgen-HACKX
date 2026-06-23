@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Star, MapPin, Heart, Sparkles, Home, Clock, ShieldCheck } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +10,9 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn, formatPrice, getInitials, truncate } from "@/lib/utils"
 import { computeSalonMetrics, computeTrustScoreBadge, computeResponseTimeBadge } from "@/services/calculations"
+import { useAuth } from "@/lib/auth-context"
+import { getLoginHref } from "@/lib/auth-routing"
+import { useDemoFavorites } from "@/lib/demo-favorites"
 import type { Salon, SalonMetrics } from "@/types"
 
 interface SalonCardProps {
@@ -27,9 +31,12 @@ function getDefaultMetrics(salon: Salon): Pick<SalonMetrics, 'trust_score' | 'mi
 }
 
 export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
-  const [isFavorited, setIsFavorited] = useState(false)
+  const router = useRouter()
+  const { user } = useAuth()
+  const { favoriteIds, toggleFavorite } = useDemoFavorites(user?.id)
   const [imgError, setImgError] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const isFavorited = favoriteIds.includes(salon.id)
 
   useEffect(() => {
     setMounted(true)
@@ -43,6 +50,16 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
 
   const minPrice = metrics?.min_price ?? defaults.min_price
   const maxPrice = metrics?.max_price ?? defaults.max_price
+  const hasResponseData = Boolean(metrics?.avg_response_time_minutes)
+
+  const handleFavorite = () => {
+    if (!user) {
+      const returnTo = `${window.location.pathname}${window.location.search}`
+      router.push(getLoginHref(returnTo))
+      return
+    }
+    toggleFavorite(salon.id)
+  }
 
   return (
     <Card
@@ -63,7 +80,7 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
         <button
           onClick={(e) => {
             e.preventDefault()
-            setIsFavorited(!isFavorited)
+            handleFavorite()
           }}
           className="absolute top-3 right-3 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-colors"
           aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
@@ -151,7 +168,7 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
             >
               {salon.gender === "unisex" ? "Unisex" : salon.gender === "women" ? "Women" : "Men"}
             </Badge>
-            {variant === "default" && (
+            {variant === "default" && hasResponseData && (
               <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
                 <Clock className="w-3 h-3" />
                 {responseBadge.label}
@@ -163,7 +180,7 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
               size="sm"
               className="h-7 text-xs px-3 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm"
             >
-              Quick Book
+              View Salon
             </Button>
           </Link>
         </div>
