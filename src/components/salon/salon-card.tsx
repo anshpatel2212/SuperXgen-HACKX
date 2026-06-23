@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { Star, MapPin, Heart, Sparkles, Home, Clock, ShieldCheck } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,23 +9,40 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn, formatPrice, getInitials, truncate } from "@/lib/utils"
 import { computeSalonMetrics, computeTrustScoreBadge, computeResponseTimeBadge } from "@/services/calculations"
-import type { Salon } from "@/types"
+import type { Salon, SalonMetrics } from "@/types"
 
 interface SalonCardProps {
   salon: Salon
   variant?: "default" | "compact"
 }
 
+// Stable default metrics that are the same on server and client (no Date/Math.random)
+function getDefaultMetrics(salon: Salon): Pick<SalonMetrics, 'trust_score' | 'min_price' | 'max_price' | 'avg_response_time_minutes'> {
+  return {
+    trust_score: 0,
+    min_price: 0,
+    max_price: 0,
+    avg_response_time_minutes: 0,
+  }
+}
+
 export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
   const [isFavorited, setIsFavorited] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  const metrics = useMemo(() => computeSalonMetrics(salon.id), [salon.id])
-  const trustBadge = useMemo(() => computeTrustScoreBadge(metrics.trust_score), [metrics.trust_score])
-  const responseBadge = useMemo(() => computeResponseTimeBadge(metrics.avg_response_time_minutes), [metrics.avg_response_time_minutes])
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-  const minPrice = metrics.min_price || 0
-  const maxPrice = metrics.max_price || 0
+  const metrics = useMemo(() => mounted ? computeSalonMetrics(salon.id) : null, [salon.id, mounted])
+  const defaults = useMemo(() => getDefaultMetrics(salon), [salon])
+  const trustScore = metrics?.trust_score ?? defaults.trust_score
+  const trustBadge = useMemo(() => computeTrustScoreBadge(trustScore), [trustScore])
+  const responseBadge = useMemo(() => computeResponseTimeBadge(metrics?.avg_response_time_minutes ?? defaults.avg_response_time_minutes), [metrics?.avg_response_time_minutes, defaults.avg_response_time_minutes])
+
+  const minPrice = metrics?.min_price ?? defaults.min_price
+  const maxPrice = metrics?.max_price ?? defaults.max_price
 
   return (
     <Card
