@@ -9,12 +9,12 @@ const QUICK_LINKS = [
 ]
 
 const CATEGORIES = [
-  { href: "/explore?service=Bridal+Makeup", label: "Bridal" },
-  { href: "/explore?service=Facial", label: "Facial" },
-  { href: "/explore?service=Haircut", label: "Haircut" },
-  { href: "/explore?service=Spa", label: "Spa" },
-  { href: "/explore?service=Massage", label: "Massage" },
-  { href: "/explore?service=Manicure", label: "Manicure" },
+  { href: "/explore?category=bridal", label: "Bridal" },
+  { href: "/explore?category=facial", label: "Facial" },
+  { href: "/explore?category=haircut", label: "Haircut" },
+  { href: "/explore?category=spa", label: "Spa" },
+  { href: "/explore?category=massage", label: "Massage" },
+  { href: "/explore?category=manicure", label: "Manicure" },
 ]
 
 export function Footer() {
