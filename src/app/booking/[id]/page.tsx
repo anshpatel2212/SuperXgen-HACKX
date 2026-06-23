@@ -64,7 +64,12 @@ function BookingPageContent() {
   const bookingReturnPath = `/booking/${salonId}${bookingQuery ? `?${bookingQuery}` : ""}`
   const loginHref = getLoginHref(bookingReturnPath)
   const initialServiceId =
-    requestedServiceId && SERVICES.some((service) => service.id === requestedServiceId && service.salon_id === salonId)
+    requestedServiceId && SERVICES.some(
+      (service) =>
+        service.id === requestedServiceId &&
+        service.salon_id === salonId &&
+        service.active
+    )
       ? requestedServiceId
       : null
   const initialDate = requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : null
@@ -85,7 +90,7 @@ function BookingPageContent() {
   const [error, setError] = useState<string | null>(null)
 
   const salon = SALONS.find((s) => s.id === salonId)
-  const salonServices = SERVICES.filter((s) => s.salon_id === salonId)
+  const salonServices = SERVICES.filter((s) => s.salon_id === salonId && s.active)
 
   const selectedService = salonServices.find((s) => s.id === selectedServiceId)
   const days = useMemo(() => getNext7Days(), [])
@@ -677,7 +682,7 @@ function BookingPageContent() {
                 ) : (
                   <span className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" />
-                    Confirm Booking
+                    Send Booking Request
                   </span>
                 )}
               </Button>
