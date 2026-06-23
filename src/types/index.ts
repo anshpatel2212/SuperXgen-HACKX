@@ -1,5 +1,14 @@
 export type UserRole = 'customer' | 'owner' | 'admin'
 
+export interface AuthUser {
+  id: string
+  email: string
+  full_name: string
+  phone: string
+  role: UserRole
+  avatar_url: string
+}
+
 export type Gender = 'women' | 'men' | 'unisex'
 
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled'

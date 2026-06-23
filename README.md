@@ -12,7 +12,7 @@ GlowGo Mumbai is a full-stack production-style MVP for a city-based AI beauty sa
 - **Icons:** Lucide React
 - **Charts:** Recharts
 - **Database:** Supabase PostgreSQL
-- **Auth:** Supabase Auth (with localStorage fallback for demo)
+- **Auth:** Browser-local demo authentication; Supabase Auth is a production roadmap item
 - **AI:** OpenAI / Anthropic API (configurable)
 
 ## Features
@@ -92,14 +92,17 @@ npm run dev
 
 6. Open [http://localhost:3000](http://localhost:3000)
 
-### Demo Credentials
+## Demo Accounts
 
-The local demo automatically seeds these accounts in a fresh browser:
-- **Customer:** riya.sharma@example.com (password: `demo123`)
-- **Owner:** neha@glowandglam.com (password: `demo123`)
-- **Admin:** admin@glowgo.com (password: `demo123`)
+This project currently uses local demo authentication for hackathon flows. These accounts are seeded in the browser for a fresh demo session.
 
-> Note: The current demo uses browser localStorage auth and is not production security. Supabase Auth migration is tracked in `IMPLEMENTATION_PLAN.md`.
+| Role | Email | Password | Landing |
+|---|---|---|---|
+| Customer | `customer@glowgo.demo` | `demo123` | `/dashboard` |
+| Owner | `owner@glowgo.demo` | `demo123` | `/owner` |
+| Admin | `admin@glowgo.demo` | `demo123` | `/admin` |
+
+> This is demo-local authentication stored in the browser. It is not production security. Supabase Auth, server sessions, API authorization, and RLS remain production roadmap work.
 
 ## Project Structure
 

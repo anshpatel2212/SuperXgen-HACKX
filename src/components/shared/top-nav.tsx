@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Sparkles, Menu, X, User, LogIn, LogOut, LayoutDashboard, Heart, Store, Shield } from "lucide-react"
+import { Sparkles, Menu, X, LogIn, LogOut, LayoutDashboard, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -17,6 +17,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
+import { getRoleHome } from "@/lib/auth-routing"
 import { getInitials } from "@/lib/utils"
 
 const NAV_LINKS = [
@@ -29,6 +30,7 @@ export function TopNav() {
   const { user, isLoading, logout } = useAuth()
   const [sheetOpen, setSheetOpen] = useState(false)
   const pathname = usePathname()
+  const dashboardHref = user ? getRoleHome(user.role) : "/dashboard"
 
   const isAuthPage = pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password"
 
@@ -64,7 +66,10 @@ export function TopNav() {
                 <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
               ) : user ? (
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="focus:outline-none">
+                  <DropdownMenuTrigger
+                    className="focus:outline-none"
+                    aria-label="Open account menu"
+                  >
                     <Avatar className="cursor-pointer ring-2 ring-glowgo-pink/30 hover:ring-glowgo-pink/60 transition-all">
                       <AvatarFallback className="bg-gradient-to-br from-glowgo-pink to-glowgo-lavender text-white text-xs">
                         {getInitials(user.full_name)}
@@ -80,24 +85,14 @@ export function TopNav() {
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => window.location.href = "/dashboard"}>
+                      <DropdownMenuItem onClick={() => window.location.href = dashboardHref}>
                         <LayoutDashboard className="w-4 h-4 mr-2" />
                         Dashboard
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.location.href = "/dashboard/favorites"}>
-                        <Heart className="w-4 h-4 mr-2" />
-                        Favorites
-                      </DropdownMenuItem>
-                      {user.role === "owner" && (
-                        <DropdownMenuItem onClick={() => window.location.href = "/owner"}>
-                          <Store className="w-4 h-4 mr-2" />
-                          My Salon
-                        </DropdownMenuItem>
-                      )}
-                      {user.role === "admin" && (
-                        <DropdownMenuItem onClick={() => window.location.href = "/admin"}>
-                          <Shield className="w-4 h-4 mr-2" />
-                          Admin
+                      {user.role === "customer" && (
+                        <DropdownMenuItem onClick={() => window.location.href = "/dashboard/favorites"}>
+                          <Heart className="w-4 h-4 mr-2" />
+                          Favorites
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuGroup>
@@ -160,7 +155,7 @@ export function TopNav() {
                   <div className="border-t pt-4 flex flex-col gap-3">
                     {user ? (
                       <>
-                        <Link href="/dashboard" onClick={() => setSheetOpen(false)}>
+                        <Link href={dashboardHref} onClick={() => setSheetOpen(false)}>
                           <Button variant="outline" className="w-full justify-start">
                             <LayoutDashboard className="w-4 h-4 mr-2" />
                             Dashboard

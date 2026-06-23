@@ -1,26 +1,49 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Sparkles, Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { DEMO_ACCOUNTS } from "@/config/demo-auth"
-import { getRoleHome, useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-context"
+import {
+  getPostAuthDestination,
+  getSignupHref,
+} from "@/lib/auth-routing"
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <LoginPageContent />
+    </Suspense>
+  )
+}
+
+function LoginPageContent() {
   const router = useRouter()
-  const { login } = useAuth()
+  const searchParams = useSearchParams()
+  const { login, user, isLoading: authLoading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [remember, setRemember] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const requestedPath = searchParams.get("next")
+  const callbackError =
+    searchParams.get("error") === "oauth_unavailable"
+      ? "Social sign-in is not enabled in demo mode. Use one of the seeded demo accounts."
+      : ""
+  const visibleError = error || callbackError
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace(getPostAuthDestination(user.role, requestedPath))
+    }
+  }, [authLoading, requestedPath, router, user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +56,7 @@ export default function LoginPage() {
     const result = await login(email, password)
     setIsLoading(false)
     if (result.success && result.user) {
-      router.push(getRoleHome(result.user.role))
+      router.replace(getPostAuthDestination(result.user.role, requestedPath))
     } else {
       setError(result.error || "Login failed. Please try again.")
     }
@@ -83,15 +106,15 @@ export default function LoginPage() {
             <p className="text-sm text-gray-500 mt-1">Welcome back! Please enter your details.</p>
           </div>
 
-          {error && (
+          {visibleError && (
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              {error}
+              {visibleError}
             </div>
           )}
 
           <div className="mb-5 rounded-xl border border-glowgo-lavender/30 bg-glowgo-lavender/5 p-3">
-            <p className="mb-2 text-xs font-medium text-gray-700">Demo accounts</p>
+            <p className="mb-2 text-xs font-medium text-gray-700">Demo-local accounts</p>
             <div className="grid grid-cols-3 gap-2">
               {DEMO_ACCOUNTS.map((account) => (
                 <button
@@ -152,11 +175,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </Label>
+            <div className="flex items-center justify-end">
               <Link href="/forgot-password" className="text-sm text-glowgo-rose hover:text-glowgo-pink transition-colors">
                 Forgot Password?
               </Link>
@@ -209,7 +228,7 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-glowgo-rose hover:text-glowgo-pink font-medium transition-colors">
+            <Link href={getSignupHref(requestedPath)} className="text-glowgo-rose hover:text-glowgo-pink font-medium transition-colors">
               Sign Up
             </Link>
           </p>

@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
-import { getRoleHome, type AuthUser, useAuth } from "@/lib/auth-context"
+import { usePathname, useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
+import { getLoginHref, getRoleHome } from "@/lib/auth-routing"
+import type { AuthUser } from "@/types"
 
 interface RoleGuardProps {
   children: ReactNode
@@ -12,19 +14,21 @@ interface RoleGuardProps {
 export function RoleGuard({ children, requiredRole }: RoleGuardProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     if (isLoading) return
 
     if (!user) {
-      router.replace("/login")
+      const returnTo = `${window.location.pathname}${window.location.search}`
+      router.replace(getLoginHref(returnTo))
       return
     }
 
     if (user.role !== requiredRole) {
       router.replace(getRoleHome(user.role))
     }
-  }, [isLoading, requiredRole, router, user])
+  }, [isLoading, pathname, requiredRole, router, user])
 
   if (isLoading || !user || user.role !== requiredRole) {
     return (
