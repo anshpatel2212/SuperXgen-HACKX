@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Sparkles, Mail, Lock, Eye, EyeOff, Phone, User, UserPlus, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,10 +10,24 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/lib/auth-context"
+import {
+  getLoginHref,
+  getPostAuthDestination,
+} from "@/lib/auth-routing"
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <SignupPageContent />
+    </Suspense>
+  )
+}
+
+function SignupPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { signup } = useAuth()
+  const requestedPath = searchParams.get("next")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [role, setRole] = useState<"customer" | "owner">("customer")
@@ -56,8 +70,12 @@ export default function SignupPage() {
       role,
     })
     setIsLoading(false)
-    if (result.success) {
-      router.push(role === "owner" ? "/owner/onboarding" : "/dashboard")
+    if (result.success && result.user) {
+      router.replace(
+        role === "owner"
+          ? "/owner/onboarding"
+          : getPostAuthDestination(result.user.role, requestedPath)
+      )
     } else {
       setError(result.error || "Sign up failed. Please try again.")
     }
@@ -313,7 +331,7 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Already have an account?{" "}
-            <Link href="/login" className="text-glowgo-rose hover:text-glowgo-pink font-medium transition-colors">
+            <Link href={getLoginHref(requestedPath)} className="text-glowgo-rose hover:text-glowgo-pink font-medium transition-colors">
               Sign In
             </Link>
           </p>

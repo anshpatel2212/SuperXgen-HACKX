@@ -25,6 +25,7 @@ import {
   useDemoSlots,
 } from "@/lib/demo-slots"
 import { useAuth } from "@/lib/auth-context"
+import { getLoginHref, getRoleHome } from "@/lib/auth-routing"
 import type { Offer } from "@/types"
 
 function getNext7Days() {
@@ -59,6 +60,9 @@ function BookingPageContent() {
   const requestedServiceId = searchParams.get("service")
   const requestedDate = searchParams.get("date")
   const requestedTime = searchParams.get("time")
+  const bookingQuery = searchParams.toString()
+  const bookingReturnPath = `/booking/${salonId}${bookingQuery ? `?${bookingQuery}` : ""}`
+  const loginHref = getLoginHref(bookingReturnPath)
   const initialServiceId =
     requestedServiceId && SERVICES.some((service) => service.id === requestedServiceId && service.salon_id === salonId)
       ? requestedServiceId
@@ -134,6 +138,10 @@ function BookingPageContent() {
   const handleConfirm = async () => {
     if (!user) {
       setError("Please sign in before confirming your booking.")
+      return
+    }
+    if (user.role !== "customer") {
+      setError("Please use a customer demo account to request an appointment.")
       return
     }
     if (
@@ -639,8 +647,13 @@ function BookingPageContent() {
               <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 <p>{error}</p>
                 {!user && (
-                  <Link href="/login" className="mt-1 inline-block font-medium underline underline-offset-2">
+                  <Link href={loginHref} className="mt-1 inline-block font-medium underline underline-offset-2">
                     Sign in to continue
+                  </Link>
+                )}
+                {user && user.role !== "customer" && (
+                  <Link href={getRoleHome(user.role)} className="mt-1 inline-block font-medium underline underline-offset-2">
+                    Return to your dashboard
                   </Link>
                 )}
               </div>

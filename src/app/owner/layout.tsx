@@ -98,7 +98,10 @@ export default function OwnerLayout({
               <Bell className="size-4" />
             </Button>
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-full size-7 hover:bg-muted hover:text-foreground transition-colors">
+              <DropdownMenuTrigger
+                className="inline-flex items-center justify-center rounded-full size-7 hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Open owner account menu"
+              >
                 <Avatar size="sm">
                   <AvatarImage src={user?.avatar_url || ""} alt={user?.full_name || "Owner"} />
                   <AvatarFallback>{user?.full_name ? getInitials(user.full_name) : "OW"}</AvatarFallback>

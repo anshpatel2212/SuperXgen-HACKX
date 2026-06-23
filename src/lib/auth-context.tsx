@@ -2,16 +2,11 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { DEMO_ACCOUNTS } from "@/config/demo-auth"
+import { DEMO_ACCOUNTS, DEMO_AUTH_VERSION } from "@/config/demo-auth"
+import type { AuthUser } from "@/types"
 
-export interface AuthUser {
-  id: string
-  email: string
-  full_name: string
-  phone: string
-  role: "customer" | "owner" | "admin"
-  avatar_url: string
-}
+export type { AuthUser } from "@/types"
+export { getRoleHome } from "@/lib/auth-routing"
 
 interface AuthContextType {
   user: AuthUser | null
@@ -35,34 +30,50 @@ interface StoredUser {
 
 const USERS_KEY = "glowgo_users"
 const SESSION_KEY = "glowgo_session"
+const AUTH_VERSION_KEY = "glowgo_demo_auth_version"
 
-export function getRoleHome(role: AuthUser["role"]): string {
-  if (role === "admin") return "/admin"
-  if (role === "owner") return "/owner"
-  return "/dashboard"
+function seedDemoUsers(stored: Record<string, StoredUser>) {
+  const storedVersion = Number(localStorage.getItem(AUTH_VERSION_KEY) || 0)
+  const shouldMigrate = storedVersion !== DEMO_AUTH_VERSION
+  let changed = false
+
+  for (const account of DEMO_ACCOUNTS) {
+    const demoEmails = new Set([
+      account.user.email.toLowerCase(),
+      ...account.legacyEmails.map((email) => email.toLowerCase()),
+    ])
+
+    for (const [id, record] of Object.entries(stored)) {
+      if (
+        id !== account.user.id &&
+        demoEmails.has(record.user.email.toLowerCase())
+      ) {
+        delete stored[id]
+        changed = true
+      }
+    }
+
+    if (shouldMigrate || !stored[account.user.id]) {
+      stored[account.user.id] = {
+        user: account.user,
+        password: account.password,
+      }
+      changed = true
+    }
+  }
+
+  if (shouldMigrate) {
+    localStorage.setItem(AUTH_VERSION_KEY, String(DEMO_AUTH_VERSION))
+  }
+
+  return changed
 }
 
 function getStoredUsers(): Record<string, StoredUser> {
   if (typeof window === "undefined") return {}
   try {
     const stored = JSON.parse(localStorage.getItem(USERS_KEY) || "{}") as Record<string, StoredUser>
-    let changed = false
-
-    for (const account of DEMO_ACCOUNTS) {
-      const existingAccount = Object.values(stored).find(
-        (record) => record.user.email.toLowerCase() === account.user.email.toLowerCase()
-      )
-
-      if (!existingAccount) {
-        stored[account.user.id] = {
-          user: account.user,
-          password: account.password,
-        }
-        changed = true
-      }
-    }
-
-    if (changed) setStoredUsers(stored)
+    if (seedDemoUsers(stored)) setStoredUsers(stored)
     return stored
   } catch {
     const seededUsers = Object.fromEntries(
@@ -71,6 +82,7 @@ function getStoredUsers(): Record<string, StoredUser> {
         { user: account.user, password: account.password },
       ])
     )
+    localStorage.setItem(AUTH_VERSION_KEY, String(DEMO_AUTH_VERSION))
     setStoredUsers(seededUsers)
     return seededUsers
   }
@@ -85,8 +97,20 @@ function getSession(): AuthUser | null {
   if (typeof window === "undefined") return null
   try {
     const data = localStorage.getItem(SESSION_KEY)
-    return data ? JSON.parse(data) : null
+    if (!data) return null
+    const session = JSON.parse(data) as Partial<AuthUser>
+    if (
+      typeof session.id !== "string" ||
+      typeof session.email !== "string" ||
+      typeof session.full_name !== "string" ||
+      !["customer", "owner", "admin"].includes(session.role || "")
+    ) {
+      localStorage.removeItem(SESSION_KEY)
+      return null
+    }
+    return session as AuthUser
   } catch {
+    localStorage.removeItem(SESSION_KEY)
     return null
   }
 }
@@ -113,8 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      getStoredUsers()
-      setUser(getSession())
+      const users = getStoredUsers()
+      const session = getSession()
+      const currentUser = session ? users[session.id]?.user || null : null
+      setUser(currentUser)
+      setSession(currentUser)
       setIsLoading(false)
     }, 0)
 
@@ -172,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setUser(null)
     setSession(null)
-    router.push("/")
+    router.replace("/login")
   }, [router])
 
   const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
