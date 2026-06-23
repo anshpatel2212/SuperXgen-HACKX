@@ -1,6 +1,7 @@
 import type { Salon, Service, Booking, BookingStatus, Review, Favorite, Offer, SearchFilters, AIIntent } from "@/types"
 import type { CreateBookingInput } from "@/lib/validation/booking"
 import { getDemoBookings, updateDemoBookingStatus, upsertDemoBooking } from "@/lib/demo-bookings"
+import { releaseDemoSlot, reserveDemoSlot } from "@/lib/demo-slots"
 
 const BASE = "/api"
 
@@ -50,12 +51,24 @@ export async function getUserBookings(userId: string) {
 }
 
 export async function createBooking(data: CreateBookingInput) {
-  const booking = await request<Booking>(`/bookings`, { method: "POST", body: JSON.stringify(data) })
-  return upsertDemoBooking(booking)
+  const slotId = data.slot_id || undefined
+  const reserved = slotId ? reserveDemoSlot(slotId) : false
+  if (slotId && !reserved) {
+    throw new Error("That slot is no longer available. Please choose another time.")
+  }
+
+  try {
+    const booking = await request<Booking>(`/bookings`, { method: "POST", body: JSON.stringify(data) })
+    return upsertDemoBooking(booking)
+  } catch (error) {
+    if (slotId && reserved) releaseDemoSlot(slotId)
+    throw error
+  }
 }
 
 export async function updateBooking(id: string, data: { status?: BookingStatus; notes?: string }) {
-  const localBooking = data.status ? updateDemoBookingStatus(id, data.status) : getDemoBookings().find((booking) => booking.id === id)
+  const existingBooking = getDemoBookings().find((booking) => booking.id === id)
+  const localBooking = data.status ? updateDemoBookingStatus(id, data.status) : existingBooking
   if (!localBooking) throw new Error("Booking not found in the demo repository")
 
   try {

@@ -35,11 +35,12 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { SALONS, SERVICES, REVIEWS } from "@/data"
-import { formatPrice, formatDate, formatTime, getInitials, cn } from "@/lib/utils"
+import { formatPrice, formatDate, formatTime, getInitials, cn, toDateInputValue } from "@/lib/utils"
 import { createReview } from "@/lib/data-service"
 import { useAuth } from "@/lib/auth-context"
 import { useDemoFavorites } from "@/lib/demo-favorites"
 import { useDemoOffers } from "@/lib/demo-offers"
+import { getBookableTimes, useDemoSlots } from "@/lib/demo-slots"
 import { ReviewForm } from "@/components/salon/review-form"
 import type { Service, Review, Offer, Salon } from "@/types"
 
@@ -61,31 +62,12 @@ const NEXT_7_DAYS = Array.from({ length: 7 }, (_, i) => {
   const d = new Date()
   d.setDate(d.getDate() + i)
   return {
-    date: d.toISOString().split("T")[0],
+    date: toDateInputValue(d),
     day: d.toLocaleDateString("en-US", { weekday: "short" }),
     dateNum: d.getDate(),
     month: d.toLocaleDateString("en-US", { month: "short" }),
   }
 })
-
-const TIME_SLOTS = [
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
-  "18:00",
-]
 
 const DEMO_CURRENT_DATE = "2026-06-22"
 
@@ -878,9 +860,22 @@ function BookingPanel({
   setSelectedTime: (t: string) => void
 }) {
   const [showAllServices, setShowAllServices] = useState(false)
+  const { slots: salonSlots } = useDemoSlots(salon.id)
   const visibleServices = showAllServices ? services : services.slice(0, 6)
+  const availableTimes = useMemo(
+    () =>
+      getBookableTimes(
+        salonSlots,
+        selectedDate,
+        selectedService?.id
+      ),
+    [salonSlots, selectedDate, selectedService?.id]
+  )
+  const effectiveSelectedTime = availableTimes.includes(selectedTime)
+    ? selectedTime
+    : ""
   const bookingHref = selectedService
-    ? `/booking/${salon.id}?service=${selectedService.id}&date=${selectedDate}&time=${selectedTime}`
+    ? `/booking/${salon.id}?service=${selectedService.id}&date=${selectedDate}&time=${effectiveSelectedTime}`
     : `/booking/${salon.id}`
 
   return (
@@ -894,7 +889,10 @@ function BookingPanel({
                 {visibleServices.map((service) => (
                   <button
                     key={service.id}
-                    onClick={() => setSelectedService(service)}
+                    onClick={() => {
+                      setSelectedService(service)
+                      setSelectedTime("")
+                    }}
                     className={cn(
                       "w-full flex items-center justify-between p-2.5 rounded-lg text-left text-sm transition-all border",
                       selectedService?.id === service.id
@@ -941,12 +939,28 @@ function BookingPanel({
                 {NEXT_7_DAYS.map((d) => (
                   <button
                     key={d.date}
-                    onClick={() => setSelectedDate(d.date)}
+                    disabled={
+                      getBookableTimes(
+                        salonSlots,
+                        d.date,
+                        selectedService?.id
+                      ).length === 0
+                    }
+                    onClick={() => {
+                      setSelectedDate(d.date)
+                      setSelectedTime("")
+                    }}
                     className={cn(
                       "shrink-0 flex flex-col items-center w-12 py-2 rounded-xl text-xs font-medium border transition-all",
                       selectedDate === d.date
                         ? "border-glowgo-pink bg-glowgo-pink/10 text-glowgo-pink"
-                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300",
+                      getBookableTimes(
+                        salonSlots,
+                        d.date,
+                        selectedService?.id
+                      ).length === 0 &&
+                        "cursor-not-allowed opacity-40"
                     )}
                   >
                     <span>{d.day}</span>
@@ -958,25 +972,31 @@ function BookingPanel({
 
             <div>
               <h3 className="font-semibold text-gray-900 text-sm mb-2">Select Time</h3>
-              <div className="grid grid-cols-3 gap-1.5 max-h-32 overflow-y-auto">
-                {TIME_SLOTS.map((time) => (
-                  <button
-                    key={time}
-                    onClick={() => setSelectedTime(time)}
-                    className={cn(
-                      "py-1.5 rounded-lg text-xs font-medium border transition-all",
-                      selectedTime === time
-                        ? "border-glowgo-pink bg-glowgo-pink/10 text-glowgo-pink"
-                        : "border-gray-200 text-gray-500 hover:border-gray-300"
-                    )}
-                  >
-                    {formatTime(time)}
-                  </button>
-                ))}
-              </div>
+              {availableTimes.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-gray-200 p-3 text-xs text-gray-500">
+                  No available slots on this date.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5 max-h-32 overflow-y-auto">
+                  {availableTimes.map((time) => (
+                    <button
+                      key={time}
+                      onClick={() => setSelectedTime(time)}
+                      className={cn(
+                        "py-1.5 rounded-lg text-xs font-medium border transition-all",
+                        effectiveSelectedTime === time
+                          ? "border-glowgo-pink bg-glowgo-pink/10 text-glowgo-pink"
+                          : "border-gray-200 text-gray-500 hover:border-gray-300"
+                      )}
+                    >
+                      {formatTime(time)}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {selectedService && selectedTime ? (
+            {selectedService && effectiveSelectedTime ? (
               <Link href={bookingHref}>
                 <Button className="w-full h-11 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 rounded-xl shadow-lg shadow-glowgo-pink/20">
                   <Calendar className="w-4 h-4 mr-2" />
@@ -1006,7 +1026,7 @@ function BookingPanel({
               {selectedService ? formatPrice(getServicePrice(selectedService)) : "—"}
             </p>
           </div>
-          {selectedService && selectedTime ? (
+          {selectedService && effectiveSelectedTime ? (
             <Link href={bookingHref}>
               <Button className="h-10 px-6 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 rounded-xl shadow-lg">
                 Continue
