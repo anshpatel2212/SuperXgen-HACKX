@@ -38,6 +38,7 @@ import { SALONS, SERVICES, REVIEWS } from "@/data"
 import { formatPrice, formatDate, formatTime, getInitials, cn, toDateInputValue } from "@/lib/utils"
 import { createReview } from "@/lib/data-service"
 import { useAuth } from "@/lib/auth-context"
+import { getLoginHref } from "@/lib/auth-routing"
 import { useDemoFavorites } from "@/lib/demo-favorites"
 import { useDemoOffers } from "@/lib/demo-offers"
 import { getBookableTimes, useDemoSlots } from "@/lib/demo-slots"
@@ -80,7 +81,7 @@ export default function SalonDetailPage() {
   const id = params.id as string
 
   const salon = SALONS.find((s) => s.id === id)
-  const salonServices = SERVICES.filter((s) => s.salon_id === id)
+  const salonServices = SERVICES.filter((s) => s.salon_id === id && s.active)
   const salonReviews = REVIEWS.filter((r) => r.salon_id === id)
 
   if (!salon) {
@@ -341,7 +342,10 @@ function SalonInfoSection({
   const isFavorited = favoriteIds.includes(salon.id)
 
   const handleFavorite = () => {
-    if (!user) return
+    if (!user) {
+      router.push(getLoginHref(`/salon/${salon.id}`))
+      return
+    }
     toggleFavorite(salon.id)
   }
 
@@ -356,8 +360,18 @@ function SalonInfoSection({
       if (navigator.share) {
         await navigator.share(shareData)
         setShareStatus("Shared")
-      } else {
+      } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareData.url)
+        setShareStatus("Link copied")
+      } else {
+        const input = document.createElement("textarea")
+        input.value = shareData.url
+        input.style.position = "fixed"
+        input.style.opacity = "0"
+        document.body.appendChild(input)
+        input.select()
+        document.execCommand("copy")
+        input.remove()
         setShareStatus("Link copied")
       }
     } catch {
@@ -385,7 +399,6 @@ function SalonInfoSection({
           <button
             type="button"
             onClick={handleFavorite}
-            disabled={!user}
             title={user ? "Save this salon in the current demo browser" : "Sign in to save salons"}
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all",
@@ -1010,7 +1023,7 @@ function BookingPanel({
             )}
 
             <div className="text-xs text-gray-400 text-center">
-              Free cancellation up to 2 hours before
+              {salon.cancellation_policy}
             </div>
           </CardContent>
         </Card>
