@@ -35,8 +35,8 @@ const defaultFilters: SearchFilters = {
 }
 
 function getInitialFilters(searchParams: URLSearchParams): SearchFilters {
-  const minPrice = Number(searchParams.get("minPrice"))
-  const maxPrice = Number(searchParams.get("maxPrice"))
+  const minPrice = Number(searchParams.get("minPrice") || searchParams.get("min_price"))
+  const maxPrice = Number(searchParams.get("maxPrice") || searchParams.get("max_price"))
   const minRating = Number(searchParams.get("rating") || searchParams.get("minRating"))
   const categoryParam = searchParams.get("category")?.trim().toLowerCase() || ""
   const category = CATEGORIES.find(
@@ -45,12 +45,12 @@ function getInitialFilters(searchParams: URLSearchParams): SearchFilters {
       item.name.toLowerCase() === categoryParam
   )
   const categoryService = category?.name === "Bridal" ? "Bridal Makeup" : category?.name
-  const service = (searchParams.get("service") || categoryService || "").trim()
+  const service = (searchParams.get("service") || searchParams.get("service_type") || categoryService || "").trim()
   const cityParam = searchParams.get("city") || ""
   const areaParam = searchParams.get("area") || ""
   const genderParam = searchParams.get("gender")
   const luxuryParam = searchParams.get("luxury")
-  const sortParam = searchParams.get("sort")
+  const sortParam = searchParams.get("sort") || searchParams.get("sortBy")
   const validSorts: SearchFilters["sort_by"][] = [
     "popularity",
     "rating",
@@ -61,7 +61,7 @@ function getInitialFilters(searchParams: URLSearchParams): SearchFilters {
 
   return {
     ...defaultFilters,
-    query: (searchParams.get("q") || "").trim().slice(0, 100),
+    query: (searchParams.get("q") || searchParams.get("query") || "").trim().slice(0, 100),
     city: MUMBAI_CITIES.includes(cityParam) ? cityParam : defaultFilters.city,
     area: MUMBAI_AREAS.includes(areaParam) ? areaParam : "",
     service_type: service.slice(0, 100),

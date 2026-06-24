@@ -7,14 +7,19 @@ import { Button } from "@/components/ui/button"
 
 export function HomeSearch() {
   const router = useRouter()
-  const [city, setCity] = useState("Mumbai")
+  const [location, setLocation] = useState("Mumbai")
   const [query, setQuery] = useState("")
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const params = new URLSearchParams()
-    if (city) params.set("city", city)
+    if (location === "Mumbai") {
+      params.set("city", "Mumbai")
+    } else {
+      params.set("city", "Mumbai")
+      params.set("area", location)
+    }
     if (query.trim()) params.set("q", query.trim())
     router.push(`/explore?${params.toString()}`)
   }
@@ -27,14 +32,17 @@ export function HomeSearch() {
       <div className="relative flex-1">
         <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
         <select
-          aria-label="Select city"
+          aria-label="Select location"
           className="h-11 w-full cursor-pointer appearance-none rounded-xl border-0 bg-transparent pl-10 pr-4 text-sm text-gray-700 outline-none"
-          value={city}
-          onChange={(event) => setCity(event.target.value)}
+          value={location}
+          onChange={(event) => setLocation(event.target.value)}
         >
           <option>Mumbai</option>
-          <option>Navi Mumbai</option>
-          <option>Thane</option>
+          <option>Bandra</option>
+          <option>Juhu</option>
+          <option>Andheri</option>
+          <option>Powai</option>
+          <option>Colaba</option>
         </select>
       </div>
       <div className="relative flex-1">
