@@ -38,9 +38,14 @@ export default function DashboardLayout({
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon-sm" className="relative" aria-label="Notifications">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled
+                  aria-label="Notifications unavailable in demo"
+                  title="Notifications are planned after the demo"
+                >
                   <Bell className="w-4 h-4 text-gray-600" />
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-glowgo-rose" />
                 </Button>
                 <Avatar className="w-7 h-7">
                   <AvatarImage src={user?.avatar_url || ""} alt={userName} />

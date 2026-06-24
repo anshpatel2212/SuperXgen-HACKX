@@ -1,12 +1,14 @@
 "use client"
 
 import { useCallback, useMemo, useSyncExternalStore } from "react"
+import { SALONS, SERVICES } from "@/data"
 import { slotsStore } from "@/lib/store"
 import type { AvailabilitySlot } from "@/types"
 
 const SLOTS_KEY = "glowgo_demo_slots_v1"
 const SLOTS_EVENT = "glowgo:slots-changed"
 const SLOTS_VERSION = 1
+const SLOTS_SEED_COVERAGE_KEY = "glowgo_demo_slots_seed_coverage_v1"
 const EMPTY_SNAPSHOT = JSON.stringify({
   version: SLOTS_VERSION,
   slots: [],
@@ -60,32 +62,64 @@ function toLocalDateValue(date: Date): string {
 
 function createSeedSlots(now = new Date()): AvailabilitySlot[] {
   const definitions = [
-    { dayOffset: 1, start_time: "10:00", end_time: "10:45", service_id: "s1" },
-    { dayOffset: 1, start_time: "12:00", end_time: "13:00", service_id: null },
-    { dayOffset: 2, start_time: "11:00", end_time: "12:00", service_id: "s3" },
-    { dayOffset: 2, start_time: "15:00", end_time: "16:00", service_id: null },
-    { dayOffset: 4, start_time: "10:30", end_time: "11:30", service_id: null },
-    { dayOffset: 5, start_time: "16:00", end_time: "17:00", service_id: null },
+    { dayOffset: 1, start_time: "10:00", end_time: "10:45", serviceIndex: 0 },
+    { dayOffset: 1, start_time: "12:00", end_time: "13:00", serviceIndex: null },
+    { dayOffset: 2, start_time: "11:00", end_time: "12:00", serviceIndex: null },
+    { dayOffset: 2, start_time: "15:00", end_time: "16:00", serviceIndex: 1 },
+    { dayOffset: 4, start_time: "10:30", end_time: "11:30", serviceIndex: null },
+    { dayOffset: 5, start_time: "16:00", end_time: "17:00", serviceIndex: null },
   ] as const
 
-  return definitions.map((definition, index) => {
-    const slotDate = new Date(now)
-    slotDate.setDate(slotDate.getDate() + definition.dayOffset)
-    const date = toLocalDateValue(slotDate)
+  return SALONS.flatMap((salon) => {
+    const salonServices = SERVICES.filter(
+      (service) => service.salon_id === salon.id && service.active
+    )
 
-    return {
-      id: `demo_slot_1_${date}_${definition.start_time.replace(":", "")}_${index + 1}`,
-      salon_id: "1",
-      service_id: definition.service_id,
-      slot_date: date,
-      start_time: definition.start_time,
-      end_time: definition.end_time,
-      is_available: true,
-      capacity: index < 2 ? 2 : 1,
-      booked_count: 0,
-      created_at: now.toISOString(),
-    }
+    return definitions.map((definition, index) => {
+      const slotDate = new Date(now)
+      slotDate.setDate(slotDate.getDate() + definition.dayOffset)
+      const date = toLocalDateValue(slotDate)
+      const service =
+        definition.serviceIndex === null
+          ? null
+          : salonServices[definition.serviceIndex] || null
+
+      return {
+        id: `demo_slot_${salon.id}_${date}_${definition.start_time.replace(":", "")}_${index + 1}`,
+        salon_id: salon.id,
+        service_id: service?.id || null,
+        slot_date: date,
+        start_time: definition.start_time,
+        end_time: definition.end_time,
+        is_available: true,
+        capacity: index < 2 ? 2 : 1,
+        booked_count: 0,
+        created_at: now.toISOString(),
+      }
+    })
   })
+}
+
+function ensureSeedCoverage(slots: AvailabilitySlot[], now = new Date()): AvailabilitySlot[] {
+  const today = toLocalDateValue(now)
+  const salonIdsWithFutureSlots = new Set(
+    slots
+      .filter((slot) => slot.slot_date >= today)
+      .map((slot) => slot.salon_id)
+  )
+  const missingSeedSlots = createSeedSlots(now).filter(
+    (slot) => !salonIdsWithFutureSlots.has(slot.salon_id)
+  )
+
+  return missingSeedSlots.length > 0 ? [...slots, ...missingSeedSlots] : slots
+}
+
+function shouldEnsureSeedCoverage() {
+  return localStorage.getItem(SLOTS_SEED_COVERAGE_KEY) !== "true"
+}
+
+function markSeedCoverageEnsured() {
+  localStorage.setItem(SLOTS_SEED_COVERAGE_KEY, "true")
 }
 
 function syncLegacySlots(slots: AvailabilitySlot[]) {
@@ -96,13 +130,29 @@ function getSnapshot() {
   if (typeof window === "undefined") return EMPTY_SNAPSHOT
 
   const storedSnapshot = localStorage.getItem(SLOTS_KEY)
-  if (storedSnapshot !== null) return storedSnapshot
+  if (storedSnapshot !== null) {
+    const parsed = parseSnapshot(storedSnapshot)
+    if (!shouldEnsureSeedCoverage()) return storedSnapshot
+
+    const coveredSlots = ensureSeedCoverage(parsed.slots)
+    markSeedCoverageEnsured()
+    if (coveredSlots.length !== parsed.slots.length) {
+      const coveredSnapshot = JSON.stringify({
+        version: SLOTS_VERSION,
+        slots: coveredSlots,
+      } satisfies SlotState)
+      localStorage.setItem(SLOTS_KEY, coveredSnapshot)
+      return coveredSnapshot
+    }
+    return storedSnapshot
+  }
 
   const initialSnapshot = JSON.stringify({
     version: SLOTS_VERSION,
-    slots: createSeedSlots(),
+    slots: ensureSeedCoverage([]),
   } satisfies SlotState)
   localStorage.setItem(SLOTS_KEY, initialSnapshot)
+  markSeedCoverageEnsured()
   return initialSnapshot
 }
 
