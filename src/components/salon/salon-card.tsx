@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useSyncExternalStore } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Star, MapPin, Heart, Sparkles, Home, Clock, ShieldCheck } from "lucide-react"
@@ -25,11 +25,11 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
   const { user } = useAuth()
   const { favoriteIds, toggleFavorite } = useDemoFavorites(user?.id)
   const [imgError, setImgError] = useState(false)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  )
 
   const isFavorited = mounted ? favoriteIds.includes(salon.id) : false
 

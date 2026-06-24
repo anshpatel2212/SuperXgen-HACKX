@@ -1,6 +1,7 @@
 import type { Salon, Service, Booking, BookingStatus, Review, Favorite, Offer, SearchFilters, AIIntent } from "@/types"
 import type { CreateBookingInput } from "@/lib/validation/booking"
 import { getDemoBookings, updateDemoBookingStatus, upsertDemoBooking } from "@/lib/demo-bookings"
+import { createDemoReview, getReviewsBySalon } from "@/lib/demo-reviews"
 import { releaseDemoSlot, reserveDemoSlot } from "@/lib/demo-slots"
 
 const BASE = "/api"
@@ -84,7 +85,7 @@ export async function updateBooking(id: string, data: { status?: BookingStatus; 
 
 // Reviews
 export async function getSalonReviews(salonId: string) {
-  return request<{ reviews: Review[] }>(`/reviews?salonId=${salonId}`)
+  return { reviews: getReviewsBySalon(salonId, { publicOnly: true }) }
 }
 
 export async function createReview(data: {
@@ -95,7 +96,10 @@ export async function createReview(data: {
   title?: string
   comment?: string
 }) {
-  return request<Review>(`/reviews`, { method: "POST", body: JSON.stringify(data) })
+  return createDemoReview({
+    ...data,
+    comment: data.comment || "",
+  })
 }
 
 // Favorites

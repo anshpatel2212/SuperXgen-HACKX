@@ -15,6 +15,8 @@ export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' 
 
 export type SalonStatus = 'pending' | 'approved' | 'rejected' | 'featured'
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'deleted'
+
 export type LuxuryLevel = 'budget' | 'mid' | 'premium' | 'luxury'
 
 export type ServiceCategory =
@@ -193,6 +195,7 @@ export interface Review {
   is_verified: boolean
   is_reported: boolean
   is_moderated: boolean
+  status: ReviewStatus
   created_at: string
   user?: Pick<User, 'id' | 'full_name' | 'avatar_url'>
 }

@@ -7,7 +7,7 @@ export interface DemoAccount {
   legacyEmails: string[]
 }
 
-export const DEMO_AUTH_VERSION = 2
+export const DEMO_AUTH_VERSION = 3
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { REVIEWS } from '@/data'
+import { getReviewsBySalon } from '@/lib/demo-reviews'
 import { summarizeReviews } from '@/services/ai'
 
 export async function POST(req: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const salonReviews = REVIEWS.filter((r) => r.salon_id === salonId)
+    const salonReviews = getReviewsBySalon(salonId, { publicOnly: true })
 
     if (salonReviews.length === 0) {
       return NextResponse.json({

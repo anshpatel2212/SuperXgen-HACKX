@@ -11,10 +11,11 @@ import {
   Shield, Sparkles, TrendingUp, Star, Tag,
   ArrowRight
 } from "lucide-react"
-import { SALONS, OFFERS, REVIEWS } from "@/data"
+import { SALONS, OFFERS } from "@/data"
 import { bookingsStore } from "@/lib/store"
 import { DEMO_ACCOUNTS } from "@/config/demo-auth"
 import { useDemoSalonStatuses } from "@/lib/demo-salon-status"
+import { useDemoReviews } from "@/lib/use-demo-reviews"
 import Link from "next/link"
 
 const DEMO_PLATFORM_METRICS = getPlatformMetrics()
@@ -22,7 +23,9 @@ const DEMO_PLATFORM_METRICS = getPlatformMetrics()
 export default function AdminDashboardPage() {
   const metrics = DEMO_PLATFORM_METRICS
   const { salons } = useDemoSalonStatuses()
+  const { reviews } = useDemoReviews()
   const pendingApprovals = salons.filter(s => s.status === "pending").length
+  const visibleReviews = reviews.filter((review) => review.status === "approved" && !review.is_moderated)
 
   return (
     <div className="space-y-6">
@@ -118,18 +121,18 @@ export default function AdminDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-1">{REVIEWS.length}</div>
+            <div className="text-2xl font-bold mb-1">{reviews.length}</div>
             <p className="text-sm text-gray-500">
-              Average rating: {REVIEWS.length > 0
-                ? (REVIEWS.reduce((s, r) => s + r.rating, 0) / REVIEWS.length).toFixed(1)
+              Average rating: {visibleReviews.length > 0
+                ? (visibleReviews.reduce((s, r) => s + r.rating, 0) / visibleReviews.length).toFixed(1)
                 : 'N/A'} ★
             </p>
             <div className="flex gap-2 mt-3">
               <Badge variant="outline" className="text-xs">
-                {REVIEWS.filter(r => r.rating >= 4).length} positive
+                {visibleReviews.filter(r => r.rating >= 4).length} positive
               </Badge>
               <Badge variant="outline" className="text-xs">
-                {REVIEWS.filter(r => r.is_reported).length} reported
+                {reviews.filter(r => r.is_reported).length} reported
               </Badge>
             </div>
           </CardContent>

@@ -1,6 +1,7 @@
 import type { SalonMetrics, Service, AvailabilitySlot, Booking, Offer, Review, PlatformMetrics, OwnerDashboardMetrics } from '@/types'
 import { SALONS, SERVICES, OFFERS, REVIEWS } from '@/data'
-import { bookingsStore, reviewsStore, slotsStore } from '@/lib/store'
+import { bookingsStore, slotsStore } from '@/lib/store'
+import { filterDemoReviews, getDemoReviews, getReviewsBySalon } from '@/lib/demo-reviews'
 
 function generateId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
@@ -23,12 +24,7 @@ export function getSalonBookings(salonId: string): Booking[] {
 }
 
 export function getSalonReviews(salonId: string): Review[] {
-  return reviewsStore.filter(
-    r =>
-      r.salon_id === salonId &&
-      r.status === 'approved' &&
-      !r.is_moderated
-  )
+  return getReviewsBySalon(salonId, { publicOnly: true })
 }
 
 export function getSalonOffers(salonId: string): Offer[] {
@@ -239,7 +235,7 @@ export function computePlatformMetrics(): PlatformMetrics & { charts: { bookings
   })
   const topCategory = Object.entries(categoryBookingCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || ''
 
-  const allReviews = reviewsStore.filter(r => r.status === 'approved' && !r.is_moderated)
+  const allReviews = filterDemoReviews(getDemoReviews(), { publicOnly: true })
   const avgRating = allReviews.length > 0
     ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
     : 0
