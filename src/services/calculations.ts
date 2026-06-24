@@ -1,5 +1,5 @@
 import type { SalonMetrics, Service, AvailabilitySlot, Booking, Offer, Review, PlatformMetrics, OwnerDashboardMetrics } from '@/types'
-import { SALONS, SERVICES, OFFERS } from '@/data'
+import { SALONS, SERVICES, OFFERS, REVIEWS } from '@/data'
 import { bookingsStore, reviewsStore, slotsStore } from '@/lib/store'
 
 function generateId(prefix: string): string {
@@ -23,7 +23,12 @@ export function getSalonBookings(salonId: string): Booking[] {
 }
 
 export function getSalonReviews(salonId: string): Review[] {
-  return reviewsStore.filter(r => r.salon_id === salonId)
+  return reviewsStore.filter(
+    r =>
+      r.salon_id === salonId &&
+      r.status === 'approved' &&
+      !r.is_moderated
+  )
 }
 
 export function getSalonOffers(salonId: string): Offer[] {
@@ -34,11 +39,13 @@ export function getSalonSlots(salonId: string): AvailabilitySlot[] {
   return slotsStore.filter(s => s.salon_id === salonId)
 }
 
-export function computeSalonMetrics(salonId: string): SalonMetrics {
+export function computeSalonMetrics(salonId: string, isStatic = false): SalonMetrics {
   const services = getSalonServices(salonId)
-  const bookings = getSalonBookings(salonId)
-  const reviews = getSalonReviews(salonId)
-  const slots = getSalonSlots(salonId)
+  const bookings = isStatic ? [] : getSalonBookings(salonId)
+  const reviews = isStatic
+    ? REVIEWS.filter(r => r.salon_id === salonId && r.status === 'approved' && !r.is_moderated)
+    : getSalonReviews(salonId)
+  const slots = isStatic ? [] : getSalonSlots(salonId)
   const offers = getSalonOffers(salonId)
 
   const activeServices = services.filter(s => s.active)
@@ -232,7 +239,7 @@ export function computePlatformMetrics(): PlatformMetrics & { charts: { bookings
   })
   const topCategory = Object.entries(categoryBookingCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || ''
 
-  const allReviews = reviewsStore
+  const allReviews = reviewsStore.filter(r => r.status === 'approved' && !r.is_moderated)
   const avgRating = allReviews.length > 0
     ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
     : 0
@@ -289,7 +296,7 @@ export function computeOwnerDashboardMetrics(ownerId: string): OwnerDashboardMet
     }
   }
 
-  const allMetrics = salonIds.map(computeSalonMetrics)
+  const allMetrics = salonIds.map(id => computeSalonMetrics(id))
   const allServices = salonIds.flatMap(getSalonServices)
   const allBookings = salonIds.flatMap(getSalonBookings)
   const allReviews = salonIds.flatMap(getSalonReviews)

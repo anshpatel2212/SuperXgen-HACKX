@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Star, MapPin, Heart, Sparkles, Home, Clock, ShieldCheck } from "lucide-react"
@@ -25,9 +25,15 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
   const { user } = useAuth()
   const { favoriteIds, toggleFavorite } = useDemoFavorites(user?.id)
   const [imgError, setImgError] = useState(false)
-  const isFavorited = favoriteIds.includes(salon.id)
+  const [mounted, setMounted] = useState(false)
 
-  const metrics = useMemo(() => computeSalonMetrics(salon.id), [salon.id])
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const isFavorited = mounted ? favoriteIds.includes(salon.id) : false
+
+  const metrics = useMemo(() => computeSalonMetrics(salon.id, !mounted), [salon.id, mounted])
   const trustScore = metrics.trust_score
   const trustBadge = useMemo(() => computeTrustScoreBadge(trustScore), [trustScore])
   const responseBadge = useMemo(() => computeResponseTimeBadge(metrics.avg_response_time_minutes), [metrics.avg_response_time_minutes])
