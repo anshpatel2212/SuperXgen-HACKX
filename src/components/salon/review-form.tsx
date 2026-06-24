@@ -20,15 +20,28 @@ export function ReviewForm({ salonName, onSubmit, onCancel }: ReviewFormProps) {
   const [title, setTitle] = useState("")
   const [comment, setComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (rating === 0) return
+    const trimmedComment = comment.trim()
+    if (rating === 0) {
+      setError("Select a rating before submitting.")
+      return
+    }
+    if (trimmedComment.length < 10) {
+      setError("Write at least 10 characters about your experience.")
+      return
+    }
+
     setIsSubmitting(true)
+    setError("")
     try {
       if (onSubmit) {
-        await onSubmit({ rating, title, comment })
+        await onSubmit({ rating, title: title.trim(), comment: trimmedComment })
       }
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to submit this review.")
     } finally {
       setIsSubmitting(false)
     }
@@ -88,6 +101,12 @@ export function ReviewForm({ salonName, onSubmit, onCancel }: ReviewFormProps) {
       <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
         Photo uploads are disabled in this demo and are planned with secure media storage.
       </p>
+
+      {error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-3 pt-2">
         {onCancel && (

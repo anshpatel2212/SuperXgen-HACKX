@@ -34,13 +34,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { SALONS, SERVICES, REVIEWS } from "@/data"
+import { SALONS, SERVICES } from "@/data"
 import { formatPrice, formatDate, formatTime, getInitials, cn, toDateInputValue } from "@/lib/utils"
-import { createReview } from "@/lib/data-service"
 import { useAuth } from "@/lib/auth-context"
 import { getLoginHref } from "@/lib/auth-routing"
 import { useDemoFavorites } from "@/lib/demo-favorites"
 import { useDemoOffers } from "@/lib/demo-offers"
+import { createDemoReview } from "@/lib/demo-reviews"
+import { useDemoReviews } from "@/lib/use-demo-reviews"
 import { getBookableTimes, useDemoSlots } from "@/lib/demo-slots"
 import { ReviewForm } from "@/components/salon/review-form"
 import type { Service, Review, Offer, Salon } from "@/types"
@@ -82,7 +83,6 @@ export default function SalonDetailPage() {
 
   const salon = SALONS.find((s) => s.id === id)
   const salonServices = SERVICES.filter((s) => s.salon_id === id && s.active)
-  const salonReviews = REVIEWS.filter((r) => r.salon_id === id)
 
   if (!salon) {
     return (
@@ -98,19 +98,18 @@ export default function SalonDetailPage() {
     )
   }
 
-  return <SalonDetailContent salon={salon} services={salonServices} reviews={salonReviews} />
+  return <SalonDetailContent salon={salon} services={salonServices} />
 }
 
 function SalonDetailContent({
   salon,
   services,
-  reviews,
 }: {
   salon: Salon
   services: Service[]
-  reviews: Review[]
 }) {
   const { offers: salonOffers } = useDemoOffers(salon.id)
+  const { reviews: currentReviews } = useDemoReviews({ salonId: salon.id, publicOnly: true })
   const activeSalonOffers = salonOffers.filter(
     (offer) =>
       offer.is_active &&
@@ -124,8 +123,14 @@ function SalonDetailContent({
   const [activeTab, setActiveTab] = useState("services")
   const [serviceFilter, setServiceFilter] = useState("all")
   const [reviewSort, setReviewSort] = useState<"date" | "rating">("date")
-  const [currentReviews, setCurrentReviews] = useState(reviews)
   const router = useRouter()
+  const liveRatingAvg = useMemo(
+    () =>
+      currentReviews.length > 0
+        ? currentReviews.reduce((sum, review) => sum + review.rating, 0) / currentReviews.length
+        : salon.rating_avg,
+    [currentReviews, salon.rating_avg]
+  )
 
   const allImages = useMemo(() => {
     const list = [
@@ -186,7 +191,7 @@ function SalonDetailContent({
           <div className="lg:col-span-2 space-y-8">
             <GallerySection images={allImages} selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
 
-            <SalonInfoSection salon={salon} />
+            <SalonInfoSection salon={salon} ratingAvg={liveRatingAvg} reviewCount={currentReviews.length || salon.review_count} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full bg-gray-100/80 rounded-xl p-1 h-auto">
@@ -228,7 +233,6 @@ function SalonDetailContent({
                   reviewSort={reviewSort}
                   setReviewSort={setReviewSort}
                   totalReviews={currentReviews.length}
-                  onReviewAdded={(review) => setCurrentReviews((existing) => [review, ...existing])}
                 />
               </TabsContent>
 
@@ -333,8 +337,12 @@ function GallerySection({
 
 function SalonInfoSection({
   salon,
+  ratingAvg,
+  reviewCount,
 }: {
   salon: Salon
+  ratingAvg: number
+  reviewCount: number
 }) {
   const router = useRouter()
   const { user } = useAuth()
@@ -425,8 +433,8 @@ function SalonInfoSection({
       <div className="flex flex-wrap items-center gap-4 mt-4">
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-yellow-50">
           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-          <span className="font-semibold text-gray-900">{salon.rating_avg.toFixed(1)}</span>
-          <span className="text-gray-400 text-sm">({salon.review_count})</span>
+          <span className="font-semibold text-gray-900">{ratingAvg.toFixed(1)}</span>
+          <span className="text-gray-400 text-sm">({reviewCount})</span>
         </div>
 
         <div className="flex items-center gap-1 text-sm text-gray-500">
@@ -633,7 +641,6 @@ function ReviewsTab({
   reviewSort,
   setReviewSort,
   totalReviews,
-  onReviewAdded,
 }: {
   salonId: string
   salonName: string
@@ -642,7 +649,6 @@ function ReviewsTab({
   reviewSort: "date" | "rating"
   setReviewSort: (v: "date" | "rating") => void
   totalReviews: number
-  onReviewAdded: (review: Review) => void
 }) {
   const { user } = useAuth()
   const totalRatings = Object.values(ratingDistribution).reduce((a, b) => a + b, 0)
@@ -654,24 +660,24 @@ function ReviewsTab({
       : 0
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [reviewMessage, setReviewMessage] = useState("")
 
   const handleSubmitReview = async (data: { rating: number; title: string; comment: string }) => {
-    if (!user) return
-    const createdReview = createReview({
+    if (!user) throw new Error("Sign in before submitting a review.")
+    const reviewUser: Review["user"] = {
+      id: user.id,
+      full_name: user.full_name,
+      avatar_url: user.avatar_url,
+    }
+    createDemoReview({
       user_id: user.id,
       salon_id: salonId,
       rating: data.rating,
       title: data.title,
       comment: data.comment,
+      user: reviewUser,
     })
-    onReviewAdded({
-      ...createdReview,
-      user: {
-        id: user.id,
-        full_name: user.full_name,
-        avatar_url: user.avatar_url,
-      },
-    })
+    setReviewMessage("Review saved in this demo browser and visible to the salon owner/admin.")
     setDialogOpen(false)
   }
 
@@ -735,7 +741,13 @@ function ReviewsTab({
           </Button>
         </div>
         {user ? (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open)
+              if (open) setReviewMessage("")
+            }}
+          >
             <DialogTrigger className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white text-sm font-medium whitespace-nowrap hover:opacity-90 transition-all">
               <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
               Write a Review
@@ -753,13 +765,19 @@ function ReviewsTab({
           </Dialog>
         ) : (
           <Link
-            href="/login"
+            href={getLoginHref(`/salon/${salonId}`)}
             className="inline-flex h-8 items-center justify-center rounded-lg border border-glowgo-pink/30 px-3 text-sm font-medium text-glowgo-pink"
           >
             Sign in to review
           </Link>
         )}
       </div>
+
+      {reviewMessage && (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          {reviewMessage}
+        </p>
+      )}
 
       {reviews.length === 0 ? (
         <div className="text-center py-10 text-gray-400 text-sm">No reviews yet. Be the first!</div>

@@ -1,27 +1,25 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { StatusBadge } from "@/components/shared/status-badge"
 import { EmptyState } from "@/components/shared/empty-state"
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton"
 import { formatDate, getInitials } from "@/lib/utils"
+import { useDemoReviews } from "@/lib/use-demo-reviews"
 import {
   MessageSquare,
   Star,
   Eye,
   EyeOff,
-  Flag,
   CheckCircle,
   AlertTriangle,
   X,
   Loader2,
 } from "lucide-react"
-import { REVIEWS } from "@/data"
-import type { Review } from "@/types"
+import { SALONS } from "@/data"
 
 const filterTabs = [
   { label: "All", value: "all" },
@@ -31,35 +29,27 @@ const filterTabs = [
 
 export default function AdminReviews() {
   const [isLoading] = useState(false)
-  const [reviews, setReviews] = useState<Review[]>(REVIEWS)
+  const { reviews, moderateReview, updateReview } = useDemoReviews()
   const [filter, setFilter] = useState("all")
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   const filtered = reviews.filter((r) => {
     if (filter === "reported") return r.is_reported
-    if (filter === "moderated") return r.is_moderated
+    if (filter === "moderated") return r.is_moderated || r.status === "rejected"
     return true
   })
 
   const handleModerate = async (id: string, moderated: boolean) => {
     setActionLoading(id)
     await new Promise((r) => setTimeout(r, 400))
-    setReviews((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, is_moderated: moderated } : r
-      )
-    )
+    moderateReview(id, moderated ? "rejected" : "approved")
     setActionLoading(null)
   }
 
   const handleDismissReport = async (id: string) => {
     setActionLoading(id)
     await new Promise((r) => setTimeout(r, 400))
-    setReviews((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, is_reported: false } : r
-      )
-    )
+    updateReview(id, { is_reported: false })
     setActionLoading(null)
   }
 
@@ -153,7 +143,13 @@ export default function AdminReviews() {
                         {review.comment}
                       </p>
                       <div className="mt-1.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <span>Salon #{review.salon_id.slice(-4)}</span>
+                        <span>
+                          {SALONS.find((salon) => salon.id === review.salon_id)?.name ||
+                            `Salon #${review.salon_id.slice(-4)}`}
+                        </span>
+                        <Badge variant="outline" className="h-4 px-1 text-[9px] capitalize">
+                          {review.status}
+                        </Badge>
                         {review.is_verified && (
                           <Badge
                             variant="secondary"
@@ -172,7 +168,7 @@ export default function AdminReviews() {
                             Reported
                           </Badge>
                         )}
-                        {review.is_moderated && (
+                        {(review.is_moderated || review.status === "rejected") && (
                           <Badge
                             variant="secondary"
                             className="h-4 gap-0.5 px-1 text-[9px]"

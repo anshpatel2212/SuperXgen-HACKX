@@ -4,7 +4,7 @@ import type {
   AIOwnerSuggestions, Booking, BeautyProfile
 } from '@/types'
 import { SALONS, SERVICES } from '@/data'
-import { reviewsStore } from '@/lib/store'
+import { getReviewsBySalon } from '@/lib/demo-reviews'
 import {
   computeSalonMetrics, computeTrustScoreBadge, computeResponseTimeBadge,
   getEffectivePriceWithOffers, getSalonOffers, getSalonServices,
@@ -184,7 +184,7 @@ function getLiveContextForSalon(salonId: string) {
   const offers = getSalonOffers(salonId)
   const trustBadge = computeTrustScoreBadge(metrics.trust_score)
   const responseBadge = computeResponseTimeBadge(metrics.avg_response_time_minutes)
-  const reviews = reviewsStore.filter(r => r.salon_id === salonId)
+  const reviews = getReviewsBySalon(salonId, { publicOnly: true })
 
   return {
     salon,
@@ -369,7 +369,7 @@ export function generateFullRecommendation(query: string): AIRecommendationRespo
 }
 
 export function summarizeReviews(salonId: string): AIReviewSummary {
-  const reviews = reviewsStore.filter(r => r.salon_id === salonId)
+  const reviews = getReviewsBySalon(salonId, { publicOnly: true })
 
   if (reviews.length === 0) {
     return {

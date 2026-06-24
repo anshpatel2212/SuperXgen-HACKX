@@ -8,20 +8,21 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { cn, formatDate, formatTime, formatPrice, getInitials, getStatusColor } from "@/lib/utils"
-import { REVIEWS } from "@/data"
 import { useAuth } from "@/lib/auth-context"
 import { useDemoBookings } from "@/lib/demo-bookings"
 import { useDemoFavorites } from "@/lib/demo-favorites"
+import { useDemoReviews } from "@/lib/use-demo-reviews"
 
 export default function DashboardOverview() {
   const { user } = useAuth()
   const { favoriteIds } = useDemoFavorites(user?.id)
   const { bookings } = useDemoBookings({ userId: user?.id })
+  const { reviews: userReviews } = useDemoReviews({ userId: user?.id || "no-user" })
 
   const upcomingBookings = bookings.filter((booking) =>
     ["pending", "confirmed", "rescheduled"].includes(booking.status)
   ).length
-  const reviewCount = REVIEWS.filter((review) => review.user_id === user?.id).length
+  const reviewCount = userReviews.length
   const recentBookings = bookings.slice(0, 5)
   const firstName = user?.full_name.split(" ")[0] || "there"
 

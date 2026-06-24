@@ -1,13 +1,14 @@
 import type { Salon, Service, Review, Booking, Favorite, Offer, Category, AvailabilitySlot, SalonMetrics, OwnerDashboardMetrics, Gender, LuxuryLevel, WorkingHours, BookingStatus } from "@/types"
-import { SALONS, SERVICES, REVIEWS as STATIC_REVIEWS, OFFERS, CATEGORIES } from "@/data"
-import { bookingsStore, favoritesStore, reviewsStore, slotsStore, initReviewsStore } from "@/lib/store"
+import { SALONS, SERVICES, OFFERS, CATEGORIES } from "@/data"
+import { bookingsStore, favoritesStore, slotsStore } from "@/lib/store"
+import { createDemoReview, syncReviewsToLegacyStore } from "@/lib/demo-reviews"
 import { computeFinalPrice, computeSalonMetrics, computeOwnerDashboardMetrics, computePlatformMetrics, updateSalonPriceRange } from "@/services/calculations"
 
 function generateId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
 }
 
-initReviewsStore(STATIC_REVIEWS)
+syncReviewsToLegacyStore()
 
 export function recomputeSalonMetrics(salonId: string): SalonMetrics {
   const metrics = computeSalonMetrics(salonId)
@@ -331,21 +332,14 @@ export function createReview(data: {
   title?: string
   comment?: string
 }): Review {
-  const review: Review = {
-    id: generateId("r"),
+  const review = createDemoReview({
     user_id: data.user_id,
     salon_id: data.salon_id,
     booking_id: data.booking_id || "",
     rating: data.rating,
     title: data.title || "",
     comment: data.comment || "",
-    images: [],
-    is_verified: false,
-    is_reported: false,
-    is_moderated: false,
-    created_at: new Date().toISOString(),
-  }
-  reviewsStore.push(review)
+  })
   recomputeSalonMetrics(data.salon_id)
   return review
 }

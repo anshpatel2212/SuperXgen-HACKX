@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { EmptyState } from "@/components/shared/empty-state"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { formatDate, formatTime, formatPrice, getInitials } from "@/lib/utils"
+import { useDemoReviews } from "@/lib/use-demo-reviews"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer,
@@ -25,6 +26,9 @@ import Link from "next/link"
 export default function OwnerDashboardPage() {
   const { user, isLoading } = useAuth()
   const metrics: OwnerDashboardMetrics | null = user?.role === "owner" ? recomputeOwnerMetrics(user.id) : null
+  const { reviews: ownerReviews } = useDemoReviews({
+    ownerId: user?.role === "owner" ? user.id : "no-owner",
+  })
 
   if (isLoading || !metrics) {
     return (
@@ -148,6 +152,58 @@ export default function OwnerDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Star className="w-4 h-4 text-amber-500" /> Recent Reviews
+          </CardTitle>
+          <CardDescription className="text-xs">Demo-local feedback for your salons</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {ownerReviews.length === 0 ? (
+            <div className="px-4 py-6 text-center text-xs text-gray-400">No reviews yet</div>
+          ) : (
+            <div className="divide-y">
+              {ownerReviews.slice(0, 5).map((review) => {
+                const reviewSalon = ownerSalons.find((salon) => salon.id === review.salon_id)
+                return (
+                  <div key={review.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">
+                          {review.user?.full_name || "Anonymous customer"}
+                        </p>
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <= review.rating
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "text-gray-200"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        {review.status !== "approved" && (
+                          <Badge variant="outline" className="text-[10px] capitalize">
+                            {review.status}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {reviewSalon?.name || "Your salon"} · {formatDate(review.created_at)}
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-600">{review.comment}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Revenue & Bookings Charts */}
       <div className="grid gap-6 lg:grid-cols-3">
