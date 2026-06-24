@@ -1,5 +1,4 @@
 # GlowGo Mumbai 🏙️✨
-
 **AI-Powered Beauty Salon Marketplace for Mumbai**
 
 GlowGo Mumbai is a full-stack production-style MVP for a city-based AI beauty salon marketplace. Salon owners onboard their business by entering structured data, the system automatically calculates all derived metrics, and an AI assistant is connected to live owner data to power discovery and recommendations.
