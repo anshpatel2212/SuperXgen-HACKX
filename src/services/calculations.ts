@@ -1,4 +1,4 @@
-import type { Salon, SalonMetrics, Service, AvailabilitySlot, Booking, Offer, Review, PlatformMetrics, OwnerDashboardMetrics } from '@/types'
+import type { SalonMetrics, Service, AvailabilitySlot, Booking, Offer, Review, PlatformMetrics, OwnerDashboardMetrics } from '@/types'
 import { SALONS, SERVICES, OFFERS } from '@/data'
 import { bookingsStore, reviewsStore, slotsStore } from '@/lib/store'
 
@@ -202,7 +202,7 @@ export function computePlatformMetrics(): PlatformMetrics & { charts: { bookings
   const users = JSON.parse(typeof window !== 'undefined' ? localStorage.getItem('glowgo_users') || '{}' : '{}')
   const usersList = Object.values(users) as { user: { role: string } }[]
   const totalUsers = usersList.length
-  const totalOwners = usersList.filter((u: any) => u.user.role === 'owner').length
+  const totalOwners = usersList.filter((u) => u.user.role === 'owner').length
 
   const totalSalons = SALONS.length
   const verifiedSalons = SALONS.filter(s => s.verified).length
@@ -293,8 +293,6 @@ export function computeOwnerDashboardMetrics(ownerId: string): OwnerDashboardMet
   const allServices = salonIds.flatMap(getSalonServices)
   const allBookings = salonIds.flatMap(getSalonBookings)
   const allReviews = salonIds.flatMap(getSalonReviews)
-  const allSlots = salonIds.flatMap(getSalonSlots)
-
   const totalBookings = allBookings.length
   const confirmedBookings = allBookings.filter(b => b.status === 'confirmed').length
   const completedBookings = allBookings.filter(b => b.status === 'completed').length

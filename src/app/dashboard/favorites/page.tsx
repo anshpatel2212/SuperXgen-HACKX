@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Heart, Search, Trash2 } from "lucide-react"
+import { Heart, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SalonCard } from "@/components/salon/salon-card"
@@ -12,7 +12,7 @@ import { SALONS } from "@/data"
 
 export default function FavoritesPage() {
   const { user } = useAuth()
-  const { favoriteIds, setFavorite } = useDemoFavorites(user?.id)
+  const { favoriteIds } = useDemoFavorites(user?.id)
   const [searchQuery, setSearchQuery] = useState("")
   const favorites = SALONS.filter((salon) => favoriteIds.includes(salon.id))
 
@@ -64,15 +64,8 @@ export default function FavoritesPage() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((salon) => (
-            <div key={salon.id} className="relative group">
+            <div key={salon.id}>
               <SalonCard salon={salon} />
-              <button
-                onClick={() => setFavorite(salon.id, false)}
-                className="absolute top-3 right-3 z-20 flex items-center justify-center w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white shadow-sm opacity-0 group-hover:opacity-100 transition-all"
-                aria-label={`Remove ${salon.name} from favorites`}
-              >
-                <Trash2 className="w-3.5 h-3.5 text-red-500" />
-              </button>
             </div>
           ))}
         </div>
@@ -80,7 +73,7 @@ export default function FavoritesPage() {
 
       {favorites.length > 0 && (
         <p className="text-xs text-gray-400 text-center">
-          Saved in this demo browser. Hover over a card to remove it.
+          Saved in this demo browser. Use the heart button to remove a salon.
         </p>
       )}
     </div>

@@ -32,7 +32,7 @@ export default function DashboardOverview() {
           <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}!</h1>
           <p className="text-sm text-gray-500 mt-1">Here&apos;s what&apos;s happening with your beauty journey.</p>
         </div>
-        <Link href="/booking/1">
+        <Link href="/explore">
           <Button className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm">
             <Sparkles className="w-4 h-4 mr-1.5" />
             Book a Salon
@@ -132,7 +132,7 @@ export default function DashboardOverview() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Link href="/booking/1">
+              <Link href="/explore">
                 <Button variant="outline" className="w-full justify-start h-9 text-sm">
                   <Calendar className="w-4 h-4 mr-2 text-glowgo-pink" />
                   Book a Salon

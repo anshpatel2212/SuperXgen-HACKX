@@ -1,7 +1,7 @@
-import type { Salon, Service, Review, Booking, Favorite, Offer, Category, AvailabilitySlot, SalonMetrics, OwnerDashboardMetrics, PlatformMetrics } from "@/types"
+import type { Salon, Service, Review, Booking, Favorite, Offer, Category, AvailabilitySlot, SalonMetrics, OwnerDashboardMetrics, Gender, LuxuryLevel, WorkingHours, BookingStatus } from "@/types"
 import { SALONS, SERVICES, REVIEWS as STATIC_REVIEWS, OFFERS, CATEGORIES } from "@/data"
 import { bookingsStore, favoritesStore, reviewsStore, slotsStore, initReviewsStore } from "@/lib/store"
-import { computeFinalPrice, computeSalonMetrics, computeOwnerDashboardMetrics, computePlatformMetrics, updateSalonPriceRange, recalculateAllSalonMetrics } from "@/services/calculations"
+import { computeFinalPrice, computeSalonMetrics, computeOwnerDashboardMetrics, computePlatformMetrics, updateSalonPriceRange } from "@/services/calculations"
 
 function generateId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
@@ -40,8 +40,8 @@ export function createSalon(data: {
   address?: string
   latitude?: number
   longitude?: number
-  gender?: string
-  luxury_level?: string
+  gender?: Gender
+  luxury_level?: LuxuryLevel
   offers_home_service?: boolean
   home_service_radius_km?: number
   categories_offered?: string[]
@@ -49,7 +49,7 @@ export function createSalon(data: {
   payment_modes?: string[]
   cancellation_policy?: string
   hygiene_practices?: string[]
-  working_hours_json?: any
+  working_hours_json?: WorkingHours
   weekly_off?: string[]
   cover_image?: string
   gallery?: string[]
@@ -71,8 +71,8 @@ export function createSalon(data: {
     pincode: "",
     latitude: data.latitude || 0,
     longitude: data.longitude || 0,
-    gender: (data.gender as any) || "unisex",
-    luxury_level: (data.luxury_level as any) || "mid",
+    gender: data.gender || "unisex",
+    luxury_level: data.luxury_level || "mid",
     offers_home_service: data.offers_home_service || false,
     home_service_radius_km: data.home_service_radius_km || 0,
     rating_avg: 0,
@@ -129,7 +129,7 @@ export function createService(data: {
   duration_minutes: number
   discount_percent?: number
   description?: string
-  gender?: string
+  gender?: Gender
   is_home_service?: boolean
   is_popular?: boolean
   active?: boolean
@@ -150,7 +150,7 @@ export function createService(data: {
     discount_percent: discountPercent,
     discounted_price: discountPercent > 0 ? finalPrice : 0,
     final_price: finalPrice,
-    gender: (data.gender as any) || "unisex",
+    gender: data.gender || "unisex",
     is_home_service: data.is_home_service || false,
     is_popular: data.is_popular || false,
     active: data.active !== undefined ? data.active : true,
@@ -306,11 +306,11 @@ export function createBooking(data: Omit<Booking, "id" | "created_at">): Booking
   return booking
 }
 
-export function updateBookingStatus(id: string, status: string, timestamp?: string): Booking | undefined {
+export function updateBookingStatus(id: string, status: BookingStatus, timestamp?: string): Booking | undefined {
   const idx = bookingsStore.findIndex((b) => b.id === id)
   if (idx === -1) return undefined
 
-  const update: Partial<Booking> = { status: status as any }
+  const update: Partial<Booking> = { status }
   if (status === 'confirmed') update.confirmed_at = timestamp || new Date().toISOString()
   if (status === 'completed') update.completed_at = timestamp || new Date().toISOString()
   if (status === 'cancelled') update.cancelled_at = timestamp || new Date().toISOString()

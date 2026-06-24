@@ -21,10 +21,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { SalonCard } from "@/components/salon/salon-card"
 import type { Salon } from "@/types"
-import { SALONS, CATEGORIES, TESTIMONIALS } from "@/data"
+import { SALONS, SERVICES, CATEGORIES, TESTIMONIALS } from "@/data"
 import { cn } from "@/lib/utils"
 import { HomeSearch } from "@/components/home/home-search"
 
@@ -39,14 +38,14 @@ const FEATURES = [
   {
     icon: Shield,
     title: "Verified Reviews",
-    description: "Real reviews from verified customers with photo proof and detailed ratings",
+    description: "Browse detailed demo reviews and ratings while comparing salons",
     gradient: "from-purple-100 to-violet-50",
     iconColor: "text-glowgo-lavender",
   },
   {
     icon: CalendarCheck,
     title: "Easy Booking",
-    description: "Book appointments in under 30 seconds with instant confirmation",
+    description: "Send a booking request using managed salon availability and track its status",
     gradient: "from-emerald-100 to-teal-50",
     iconColor: "text-emerald-500",
   },
@@ -87,6 +86,7 @@ const CATEGORY_GRADIENTS = [
 const CATEGORY_ICONS = [Sparkles, Droplets, Scissors, Flower2, Zap, Hand, Heart, Sun]
 
 const featuredSalons = SALONS.filter((s) => s.featured).slice(0, 6)
+const catalogAreas = new Set(SALONS.map((salon) => `${salon.city}:${salon.area}`)).size
 
 export default function HomePage() {
   return (
@@ -140,9 +140,9 @@ function HeroSection() {
               <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" /> 4.8 avg rating
             </span>
             <span className="text-gray-300">•</span>
-            <span>50+ areas</span>
+            <span>{catalogAreas} demo areas</span>
             <span className="text-gray-300">•</span>
-            <span>500+ salons</span>
+            <span>{SALONS.length} demo salons</span>
           </div>
         </div>
       </div>
@@ -156,9 +156,9 @@ function StatsSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-3 gap-4 sm:gap-6">
           {[
-            { value: "500+", label: "Salons" },
-            { value: "10,000+", label: "Happy Customers" },
-            { value: "50+", label: "Areas in Mumbai" },
+            { value: SALONS.length.toString(), label: "Demo Salons" },
+            { value: SERVICES.length.toString(), label: "Bookable Services" },
+            { value: catalogAreas.toString(), label: "Mumbai Areas" },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -232,7 +232,7 @@ function CategoriesSection() {
           {CATEGORIES.map((cat, i) => {
             const IconComponent = CATEGORY_ICONS[i] || Sparkles
             return (
-              <Link key={cat.id} href={`/explore?service=${encodeURIComponent(cat.name)}`} className="group">
+              <Link key={cat.id} href={`/explore?category=${encodeURIComponent(cat.slug)}`} className="group">
                 <Card className="border-0 overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                   <CardContent className="p-6">
                     <div
@@ -273,7 +273,7 @@ function HowItWorksSection() {
     {
       number: "03",
       title: "Book & Relax",
-      description: "Instant booking confirmation. Show up and enjoy your premium beauty experience.",
+      description: "Send a pending appointment request, then track confirmation from your dashboard.",
     },
   ]
 
@@ -466,20 +466,14 @@ function CTASection() {
               Ready to Transform <span className="gradient-text">Your Look</span>?
             </h2>
             <p className="mt-4 text-gray-600 text-lg max-w-xl mx-auto">
-              Join thousands of happy customers. Your perfect beauty experience is waiting.
+              Browse the demo catalog and request your next salon appointment.
             </p>
-            <div className="mt-8 max-w-md mx-auto flex flex-col sm:flex-row gap-3">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                className="h-12 rounded-xl bg-white/80 border-white/50 text-gray-900 placeholder:text-gray-400"
-              />
+            <Link href="/explore" className="mt-8 inline-flex">
               <Button className="h-12 px-8 bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 rounded-xl shadow-lg whitespace-nowrap">
-                Get Started
+                Explore Salons
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-            </div>
-            <p className="mt-4 text-xs text-gray-400">No spam. Unsubscribe anytime.</p>
+            </Link>
           </div>
         </div>
       </div>

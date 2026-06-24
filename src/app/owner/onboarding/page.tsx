@@ -21,7 +21,7 @@ export default function OnboardingPage() {
           Welcome to GlowGo Mumbai
         </h1>
         <p className="text-gray-500">
-          Set up your salon in minutes. We'll calculate your prices, trust score, and metrics automatically.
+          Set up your salon in minutes. We&apos;ll calculate your prices, trust score, and metrics automatically.
         </p>
       </div>
       <OnboardingWizard />

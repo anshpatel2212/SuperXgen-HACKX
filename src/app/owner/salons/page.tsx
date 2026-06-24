@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react"
 import { useRouter } from "next/navigation"
 import {
   Card,
@@ -54,13 +54,18 @@ import {
 export default function OwnerSalons() {
   const router = useRouter()
   const { user, isLoading } = useAuth()
-  const [ownerSalons, setOwnerSalons] = useState<Salon[]>(
-    SALONS.filter((s) => s.owner_id === (user?.id || ""))
-  )
+  const [createdSalons, setCreatedSalons] = useState<Salon[]>([])
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
-  const [form, setForm] = useState({ name: "", area: "", phone: "", description: "" })
+  const [form, setForm] = useState<CreateSalonForm>({ name: "", area: "", phone: "", description: "" })
+  const ownerSalons = useMemo(() => {
+    const ownerId = user?.id || ""
+    const salonsById = new Map<string, Salon>()
+    for (const salon of SALONS.filter((s) => s.owner_id === ownerId)) salonsById.set(salon.id, salon)
+    for (const salon of createdSalons.filter((s) => s.owner_id === ownerId)) salonsById.set(salon.id, salon)
+    return Array.from(salonsById.values())
+  }, [createdSalons, user?.id])
 
   const handleCreate = async () => {
     if (!form.name.trim() || !form.area.trim()) {
@@ -79,7 +84,7 @@ export default function OwnerSalons() {
         phone: form.phone,
         description: form.description,
       })
-      setOwnerSalons((prev) => [...prev, salon])
+      setCreatedSalons((prev) => [...prev, salon])
       setShowCreate(false)
       setForm({ name: "", area: "", phone: "", description: "" })
     } catch {
@@ -212,6 +217,13 @@ export default function OwnerSalons() {
   )
 }
 
+interface CreateSalonForm {
+  name: string
+  area: string
+  phone: string
+  description: string
+}
+
 function CreateDialog({
   open,
   onOpenChange,
@@ -223,8 +235,8 @@ function CreateDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  form: { name: string; area: string; phone: string; description: string }
-  setForm: (f: any) => void
+  form: CreateSalonForm
+  setForm: Dispatch<SetStateAction<CreateSalonForm>>
   creating: boolean
   error: string
   onSubmit: () => void
@@ -254,7 +266,7 @@ function CreateDialog({
               id="name"
               placeholder="e.g. Glow & Glam Studio"
               value={form.name}
-              onChange={(e) => setForm((f: any) => ({ ...f, name: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
             />
           </div>
@@ -262,7 +274,7 @@ function CreateDialog({
             <Label htmlFor="area">Area *</Label>
             <Select
               value={form.area}
-              onValueChange={(v) => v && setForm((f: any) => ({ ...f, area: v }))}
+              onValueChange={(v) => v && setForm((f) => ({ ...f, area: v }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select area in Mumbai" />
@@ -280,7 +292,7 @@ function CreateDialog({
               id="phone"
               placeholder="+91 98765 43210"
               value={form.phone}
-              onChange={(e) => setForm((f: any) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
             />
           </div>
           <div className="space-y-1.5">
@@ -290,7 +302,7 @@ function CreateDialog({
               placeholder="Tell customers about your salon..."
               className="resize-none h-20"
               value={form.description}
-              onChange={(e) => setForm((f: any) => ({ ...f, description: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
           </div>
           <DialogFooter>

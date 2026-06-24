@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Sparkles, X, ChevronsUpDown, Check, Save, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandInput, CommandList, CommandItem, CommandGroup, CommandEmpty } from "@/components/ui/command"
 import { cn, MUMBAI_AREAS } from "@/lib/utils"
@@ -153,34 +152,34 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
 
 export default function PreferencesPage() {
   const { user } = useAuth()
+
+  if (!user) {
+    return (
+      <div className="text-center py-12 text-sm text-gray-500">
+        Please log in to manage your preferences.
+      </div>
+    )
+  }
+
+  return <PreferencesForm key={user.id} userId={user.id} />
+}
+
+function PreferencesForm({ userId }: { userId: string }) {
   const [isLoading, setIsLoading] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [skinType, setSkinType] = useState("")
-  const [hairType, setHairType] = useState("")
-  const [beautyGoals, setBeautyGoals] = useState<string[]>([])
-  const [preferredStyles, setPreferredStyles] = useState<string[]>([])
-  const [allergies, setAllergies] = useState<string[]>([])
-  const [budgetRange, setBudgetRange] = useState("")
-  const [preferredAreas, setPreferredAreas] = useState<string[]>([])
-
-  useEffect(() => {
-    if (user) {
-      const prefs = loadPreferences(user.id)
-      setSkinType(prefs.skinType)
-      setHairType(prefs.hairType)
-      setBeautyGoals(prefs.beautyGoals)
-      setPreferredStyles(prefs.preferredStyles)
-      setAllergies(prefs.allergies)
-      setBudgetRange(prefs.budgetRange)
-      setPreferredAreas(prefs.preferredAreas)
-    }
-  }, [user])
+  const [initialPreferences] = useState(() => loadPreferences(userId))
+  const [skinType, setSkinType] = useState(initialPreferences.skinType)
+  const [hairType, setHairType] = useState(initialPreferences.hairType)
+  const [beautyGoals, setBeautyGoals] = useState<string[]>(initialPreferences.beautyGoals)
+  const [preferredStyles, setPreferredStyles] = useState<string[]>(initialPreferences.preferredStyles)
+  const [allergies, setAllergies] = useState<string[]>(initialPreferences.allergies)
+  const [budgetRange, setBudgetRange] = useState(initialPreferences.budgetRange)
+  const [preferredAreas, setPreferredAreas] = useState<string[]>(initialPreferences.preferredAreas)
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
     setIsLoading(true)
-    savePreferences(user.id, {
+    savePreferences(userId, {
       skinType,
       hairType,
       beautyGoals,
@@ -193,14 +192,6 @@ export default function PreferencesPage() {
     setIsLoading(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
-  }
-
-  if (!user) {
-    return (
-      <div className="text-center py-12 text-sm text-gray-500">
-        Please log in to manage your preferences.
-      </div>
-    )
   }
 
   return (
