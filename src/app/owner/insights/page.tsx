@@ -1,102 +1,94 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
-import { getOwnerSalons, recomputeOwnerMetrics } from "@/lib/data-service"
+import { recomputeOwnerMetrics } from "@/lib/data-service"
 import type { OwnerDashboardMetrics } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
   Lightbulb, TrendingUp, TrendingDown, BarChart3, Star,
   Clock, IndianRupee, Scissors, Target, Zap, RefreshCw,
   AlertCircle, CheckCircle2, ArrowUpRight
 } from "lucide-react"
 
+interface OwnerAdvice {
+  strengths: string[]
+  weaknesses: string[]
+  pricing_advice: string
+  service_mix_advice: string
+  marketing_advice: string
+  next_actions: string[]
+}
+
+function generateAdvice(m: OwnerDashboardMetrics): OwnerAdvice {
+  const strengths: string[] = []
+  const weaknesses: string[] = []
+
+  if (m.trust_score >= 70) strengths.push(`High Trust Score (${m.trust_score}/100) — customers trust your salon`)
+  else weaknesses.push(`Trust Score (${m.trust_score}/100) needs improvement — respond faster and get more reviews`)
+
+  if (m.average_rating >= 4.5) strengths.push(`Excellent rating (${m.average_rating}★) — top-tier customer satisfaction`)
+  else if (m.average_rating >= 4) strengths.push(`Great rating (${m.average_rating}★) — above average`)
+  else if (m.average_rating < 4 && m.total_reviews > 0) weaknesses.push(`Rating (${m.average_rating}★) could improve — focus on service quality`)
+
+  if (m.total_bookings > 50) strengths.push(`${m.total_bookings} total bookings — strong customer demand`)
+  else weaknesses.push(`Only ${m.total_bookings} total bookings — need to increase visibility`)
+
+  if (m.slot_utilization_rate > 60) strengths.push(`Slot utilization at ${m.slot_utilization_rate}% — efficient capacity management`)
+  else if (m.slot_utilization_rate < 30) weaknesses.push(`Low slot utilization (${m.slot_utilization_rate}%) — too many empty slots`)
+  else weaknesses.push(`Slot utilization at ${m.slot_utilization_rate}% — room for improvement`)
+
+  if (m.response_time_minutes <= 30) strengths.push(`Fast response time (${m.response_time_minutes}min) — you're responsive`)
+  else weaknesses.push(`Response time (${m.response_time_minutes}min) is slow — try to confirm bookings within 30 minutes`)
+
+  if (m.total_services < 5) weaknesses.push(`Only ${m.total_services} services offered — add more to attract more customers`)
+  else strengths.push(`${m.total_services} services offered — good variety`)
+
+  if (m.revenue_total > 0) strengths.push(`₹${m.revenue_total.toLocaleString('en-IN')} lifetime revenue`)
+  else weaknesses.push('No revenue yet — focus on getting your first bookings')
+
+  const pricingAdvice = m.average_rating >= 4.5
+    ? "Your high ratings justify premium pricing. Consider raising prices slightly to reflect your quality."
+    : m.average_rating >= 4
+      ? "Your pricing is competitive. Consider offering package deals to increase average order value."
+      : "Consider introductory pricing or discounts to attract more customers and build your reputation."
+
+  const serviceMixAdvice = m.top_category
+    ? `"${m.top_category}" is your top category — consider expanding related services and creating bundled packages.`
+    : "Analyze which services get the most bookings and focus on promoting those."
+
+  const marketingAdvice = m.total_bookings < 20
+    ? "Run a 'first visit discount' campaign and encourage customers to leave reviews to build social proof."
+    : "Leverage your best reviews in marketing materials. Consider a referral program to drive word-of-mouth."
+
+  const nextActions: string[] = []
+
+  if (m.total_reviews < 5) nextActions.push("Request reviews from recent customers — social proof drives bookings")
+  if (m.slot_utilization_rate < 40) nextActions.push("Reduce available slots or promote off-peak hours with discounts")
+  if (m.response_time_minutes > 60) nextActions.push("Set up instant booking confirmation to improve response time")
+  if (m.top_service) nextActions.push(`Promote "${m.top_service}" — it's your most popular service`)
+  if (m.revenue_week < m.revenue_month / 4) nextActions.push("Revenue is declining — run a flash sale to boost this week")
+  if (m.total_services < 5) nextActions.push("Add at least 3 more services to appear in more search results")
+
+  if (nextActions.length === 0) nextActions.push("Keep up the great work! Focus on maintaining quality and consistency.")
+
+  return {
+    strengths,
+    weaknesses,
+    pricing_advice: pricingAdvice,
+    service_mix_advice: serviceMixAdvice,
+    marketing_advice: marketingAdvice,
+    next_actions: nextActions,
+  }
+}
+
 export default function OwnerInsightsPage() {
   const { user, isLoading } = useAuth()
-  const [metrics, setMetrics] = useState<OwnerDashboardMetrics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [advice, setAdvice] = useState<{
-    strengths: string[]
-    weaknesses: string[]
-    pricing_advice: string
-    service_mix_advice: string
-    marketing_advice: string
-    next_actions: string[]
-  } | null>(null)
-
-  useEffect(() => {
-    if (user && user.role === "owner") {
-      loadData()
-    }
-  }, [user])
-
-  const loadData = () => {
-    if (!user) return
-    setLoading(true)
-    const m = recomputeOwnerMetrics(user.id)
-    setMetrics(m)
-    generateAdvice(m)
-    setLoading(false)
-  }
-
-  const generateAdvice = (m: OwnerDashboardMetrics) => {
-    const strengths: string[] = []
-    const weaknesses: string[] = []
-
-    if (m.trust_score >= 70) strengths.push(`High Trust Score (${m.trust_score}/100) — customers trust your salon`)
-    else weaknesses.push(`Trust Score (${m.trust_score}/100) needs improvement — respond faster and get more reviews`)
-
-    if (m.average_rating >= 4.5) strengths.push(`Excellent rating (${m.average_rating}★) — top-tier customer satisfaction`)
-    else if (m.average_rating >= 4) strengths.push(`Great rating (${m.average_rating}★) — above average`)
-    else if (m.average_rating < 4 && m.total_reviews > 0) weaknesses.push(`Rating (${m.average_rating}★) could improve — focus on service quality`)
-
-    if (m.total_bookings > 50) strengths.push(`${m.total_bookings} total bookings — strong customer demand`)
-    else weaknesses.push(`Only ${m.total_bookings} total bookings — need to increase visibility`)
-
-    if (m.slot_utilization_rate > 60) strengths.push(`Slot utilization at ${m.slot_utilization_rate}% — efficient capacity management`)
-    else if (m.slot_utilization_rate < 30) weaknesses.push(`Low slot utilization (${m.slot_utilization_rate}%) — too many empty slots`)
-    else weaknesses.push(`Slot utilization at ${m.slot_utilization_rate}% — room for improvement`)
-
-    if (m.response_time_minutes <= 30) strengths.push(`Fast response time (${m.response_time_minutes}min) — you're responsive`)
-    else weaknesses.push(`Response time (${m.response_time_minutes}min) is slow — try to confirm bookings within 30 minutes`)
-
-    if (m.total_services < 5) weaknesses.push(`Only ${m.total_services} services offered — add more to attract more customers`)
-    else strengths.push(`${m.total_services} services offered — good variety`)
-
-    if (m.revenue_total > 0) strengths.push(`₹${m.revenue_total.toLocaleString('en-IN')} lifetime revenue`)
-    else weaknesses.push('No revenue yet — focus on getting your first bookings')
-
-    const pricingAdvice = m.average_rating >= 4.5
-      ? "Your high ratings justify premium pricing. Consider raising prices slightly to reflect your quality."
-      : m.average_rating >= 4
-        ? "Your pricing is competitive. Consider offering package deals to increase average order value."
-        : "Consider introductory pricing or discounts to attract more customers and build your reputation."
-
-    const serviceMixAdvice = m.top_category
-      ? `"${m.top_category}" is your top category — consider expanding related services and creating bundled packages.`
-      : "Analyze which services get the most bookings and focus on promoting those."
-
-    const marketingAdvice = m.total_bookings < 20
-      ? "Run a 'first visit discount' campaign and encourage customers to leave reviews to build social proof."
-      : "Leverage your best reviews in marketing materials. Consider a referral program to drive word-of-mouth."
-
-    const nextActions: string[] = []
-
-    if (m.total_reviews < 5) nextActions.push("Request reviews from recent customers — social proof drives bookings")
-    if (m.slot_utilization_rate < 40) nextActions.push("Reduce available slots or promote off-peak hours with discounts")
-    if (m.response_time_minutes > 60) nextActions.push("Set up instant booking confirmation to improve response time")
-    if (m.top_service) nextActions.push(`Promote "${m.top_service}" — it's your most popular service`)
-    if (m.revenue_week < m.revenue_month / 4) nextActions.push("Revenue is declining — run a flash sale to boost this week")
-    if (m.total_services < 5) nextActions.push("Add at least 3 more services to appear in more search results")
-
-    if (nextActions.length === 0) nextActions.push("Keep up the great work! Focus on maintaining quality and consistency.")
-
-    setAdvice({ strengths, weaknesses, pricing_advice: pricingAdvice, service_mix_advice: serviceMixAdvice, marketing_advice: marketingAdvice, next_actions: nextActions })
-  }
+  const [, setRefreshKey] = useState(0)
+  const metrics = user?.role === "owner" ? recomputeOwnerMetrics(user.id) : null
+  const advice = metrics ? generateAdvice(metrics) : null
 
   if (isLoading) return null
   if (!user) redirect("/login")
@@ -111,18 +103,12 @@ export default function OwnerInsightsPage() {
           </h1>
           <p className="text-gray-500 text-sm">AI-driven analysis and recommendations for your business</p>
         </div>
-        <Button variant="outline" onClick={loadData} className="gap-2">
+        <Button variant="outline" onClick={() => setRefreshKey((key) => key + 1)} className="gap-2">
           <RefreshCw className="w-4 h-4" /> Refresh
         </Button>
       </div>
 
-      {loading ? (
-        <div className="grid md:grid-cols-2 gap-4 animate-pulse">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i}><CardContent className="p-6"><div className="h-4 bg-gray-200 rounded w-3/4 mb-2" /><div className="h-3 bg-gray-100 rounded w-full" /></CardContent></Card>
-          ))}
-        </div>
-      ) : metrics && advice ? (
+      {metrics && advice ? (
         <>
           {/* Key Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

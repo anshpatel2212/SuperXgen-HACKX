@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { User, Mail, Phone, Camera, Save, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,26 +10,36 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { getInitials } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
+import type { AuthUser } from "@/types"
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
+
+  if (!user) {
+    return (
+      <div className="text-center py-12 text-sm text-gray-500">
+        Please log in to manage your profile.
+      </div>
+    )
+  }
+
+  return <ProfileForm key={user.id} user={user} updateProfile={updateProfile} />
+}
+
+function ProfileForm({
+  user,
+  updateProfile,
+}: {
+  user: AuthUser
+  updateProfile: (data: Partial<AuthUser>) => Promise<{ success: boolean; error?: string }>
+}) {
   const [isLoading, setIsLoading] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-  })
-
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        fullName: user.full_name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-      })
-    }
-  }, [user])
+  const [formData, setFormData] = useState(() => ({
+    fullName: user.full_name || "",
+    email: user.email || "",
+    phone: user.phone || "",
+  }))
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()

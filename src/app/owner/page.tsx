@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
@@ -25,18 +24,9 @@ import Link from "next/link"
 
 export default function OwnerDashboardPage() {
   const { user, isLoading } = useAuth()
-  const [metrics, setMetrics] = useState<OwnerDashboardMetrics | null>(null)
-  const [loading, setLoading] = useState(true)
+  const metrics: OwnerDashboardMetrics | null = user?.role === "owner" ? recomputeOwnerMetrics(user.id) : null
 
-  useEffect(() => {
-    if (user && user.role === "owner") {
-      const m = recomputeOwnerMetrics(user.id)
-      setMetrics(m)
-      setLoading(false)
-    }
-  }, [user])
-
-  if (isLoading || loading) {
+  if (isLoading || !metrics) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-pink-500" />

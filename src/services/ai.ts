@@ -1,16 +1,16 @@
 import type {
   AIIntent, Salon, Service, SearchFilters, AIRecommendationResponse,
   AIRecommendation, AIReviewSummary, AIBeautyProfileInsights,
-  AIOwnerSuggestions, Review, Booking, BeautyProfile
+  AIOwnerSuggestions, Booking, BeautyProfile
 } from '@/types'
-import { SALONS, SERVICES, OFFERS } from '@/data'
-import { reviewsStore, bookingsStore } from '@/lib/store'
+import { SALONS, SERVICES } from '@/data'
+import { reviewsStore } from '@/lib/store'
 import {
   computeSalonMetrics, computeTrustScoreBadge, computeResponseTimeBadge,
   getEffectivePriceWithOffers, getSalonOffers, getSalonServices,
   computeFinalPrice
 } from '@/services/calculations'
-import { MUMBAI_AREAS, formatPrice, parsePriceRange } from '@/lib/utils'
+import { formatPrice } from '@/lib/utils'
 
 const SERVICE_KEYWORDS: Record<string, string[]> = {
   'Bridal Makeup': ['bridal', 'wedding', 'bride', 'engagement makeup', 'wedding makeup'],
@@ -210,8 +210,10 @@ function getLiveContextForSalon(salonId: string) {
   }
 }
 
+type LiveSalonContext = NonNullable<ReturnType<typeof getLiveContextForSalon>>
+
 export function buildSearchContext(query: string): {
-  salonContexts: ReturnType<typeof getLiveContextForSalon>[]
+  salonContexts: LiveSalonContext[]
   intent: AIIntent
 } {
   const intent = extractIntent(query)
@@ -245,7 +247,10 @@ export function buildSearchContext(query: string): {
   })
 
   return {
-    salonContexts: matches.map(s => getLiveContextForSalon(s.id)).filter(Boolean) as any,
+    salonContexts: matches.flatMap((s) => {
+      const context = getLiveContextForSalon(s.id)
+      return context ? [context] : []
+    }),
     intent,
   }
 }
@@ -343,7 +348,7 @@ export function findMatchingSalons(intent: AIIntent): Salon[] {
 
 export function generateFullRecommendation(query: string): AIRecommendationResponse {
   const { salonContexts, intent } = buildSearchContext(query)
-  const salons = salonContexts.filter(Boolean) as any[]
+  const salons = salonContexts
 
   if (salons.length === 0) {
     return {
@@ -352,7 +357,7 @@ export function generateFullRecommendation(query: string): AIRecommendationRespo
     }
   }
 
-  const topMatches = salons.slice(0, 5).map((ctx: any) =>
+  const topMatches = salons.slice(0, 5).map((ctx) =>
     generateRecommendationReasoning(ctx.salon, ctx.services, intent)
   )
 
@@ -641,7 +646,7 @@ export function searchSalons(
   if (intent.area) mergedFilters.area = intent.area
   if (intent.gender) mergedFilters.gender = intent.gender
 
-  let baseSalons = SALONS.filter(s => s.status === 'approved' || s.status === 'featured')
+  const baseSalons = SALONS.filter(s => s.status === 'approved' || s.status === 'featured')
   let results = filterSalonsByFilters(baseSalons, mergedFilters)
 
   if (mergedFilters.sort_by) {

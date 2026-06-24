@@ -336,6 +336,7 @@ function SalonInfoSection({
 }: {
   salon: Salon
 }) {
+  const router = useRouter()
   const { user } = useAuth()
   const { favoriteIds, toggleFavorite } = useDemoFavorites(user?.id)
   const [shareStatus, setShareStatus] = useState("")

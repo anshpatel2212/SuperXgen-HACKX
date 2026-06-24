@@ -16,6 +16,17 @@ import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/lib/auth-context"
 import { createSalon, createService } from "@/lib/data-service"
 import { MUMBAI_AREAS, MUMBAI_CITIES, SERVICE_CATEGORIES, AMENITIES_OPTIONS } from "@/lib/utils"
+import type { Gender, LuxuryLevel } from "@/types"
+
+type ServiceDraft = {
+  name: string
+  category: string
+  description: string
+  price: string
+  duration_minutes: string
+  discount_percent: string
+  gender: Gender
+}
 
 interface OnboardingData {
   name: string
@@ -32,8 +43,8 @@ interface OnboardingData {
   cover_image: string
   gallery: string[]
   categories_offered: string[]
-  gender: string
-  luxury_level: string
+  gender: Gender
+  luxury_level: LuxuryLevel
   offers_home_service: boolean
   home_service_radius_km: string
   working_hours: Record<string, { open: string; close: string; is_closed: boolean }>
@@ -43,16 +54,12 @@ interface OnboardingData {
   cancellation_policy: string
   hygiene_practices: string[]
   amenities: string[]
-  services: {
-    name: string
-    category: string
-    description: string
-    price: string
-    duration_minutes: string
-    discount_percent: string
-    gender: string
-  }[]
+  services: ServiceDraft[]
 }
+
+type OnboardingArrayField = {
+  [K in keyof OnboardingData]: OnboardingData[K] extends string[] ? K : never
+}[keyof OnboardingData]
 
 const INITIAL_DATA: OnboardingData = {
   name: "", area: "Andheri", city: "Mumbai", address: "", pincode: "",
@@ -95,7 +102,7 @@ const DAY_LABELS: Record<string, string> = {
   friday: "Friday", saturday: "Saturday", sunday: "Sunday",
 }
 
-const LUXURY_LEVELS = [
+const LUXURY_LEVELS: { value: LuxuryLevel; label: string; desc: string }[] = [
   { value: "budget", label: "Budget-Friendly", desc: "Affordable services for everyday needs" },
   { value: "mid", label: "Mid-Range", desc: "Quality services at reasonable prices" },
   { value: "premium", label: "Premium", desc: "High-end experience with premium products" },
@@ -105,6 +112,11 @@ const LUXURY_LEVELS = [
 const PAYMENT_MODE_OPTIONS = ["Cash", "Card", "UPI", "Net Banking", "Wallet", "Pay Later"]
 const HYGIENE_OPTIONS = ["Sanitized Tools", "Disposable Gloves", "Mask Required", "Temperature Check", "Contactless Payment", "Regular Disinfection", "Hand Sanitizer"]
 const WEEKDAY_OPTIONS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+const GENDER_OPTIONS: { value: Gender; label: string; icon: string }[] = [
+  { value: "women", label: "Women", icon: "♀" },
+  { value: "men", label: "Men", icon: "♂" },
+  { value: "unisex", label: "Unisex", icon: "⚤" },
+]
 
 export function OnboardingWizard() {
   const { user } = useAuth()
@@ -114,7 +126,7 @@ export function OnboardingWizard() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const updateField = (field: keyof OnboardingData, value: any) => {
+  const updateField = <K extends keyof OnboardingData>(field: K, value: OnboardingData[K]) => {
     setData(prev => ({ ...prev, [field]: value }))
     setErrors(prev => ({ ...prev, [field]: "" }))
   }
@@ -213,7 +225,7 @@ export function OnboardingWizard() {
     }))
   }
 
-  const updateService = (idx: number, field: string, value: string) => {
+  const updateService = <K extends keyof ServiceDraft>(idx: number, field: K, value: ServiceDraft[K]) => {
     setData(prev => {
       const services = [...prev.services]
       services[idx] = { ...services[idx], [field]: value }
@@ -228,7 +240,7 @@ export function OnboardingWizard() {
     }))
   }
 
-  const toggleArrayItem = (field: keyof OnboardingData, value: string) => {
+  const toggleArrayItem = (field: OnboardingArrayField, value: string) => {
     setData(prev => {
       const arr = prev[field] as string[]
       if (arr.includes(value)) {
@@ -435,11 +447,7 @@ export function OnboardingWizard() {
         <div className="space-y-4">
           <label className="text-sm font-medium">Gender Served</label>
           <div className="flex gap-3">
-            {[
-              { value: "women", label: "Women", icon: "♀" },
-              { value: "men", label: "Men", icon: "♂" },
-              { value: "unisex", label: "Unisex", icon: "⚤" },
-            ].map(g => (
+            {GENDER_OPTIONS.map(g => (
               <button
                 key={g.value}
                 type="button"
@@ -492,7 +500,7 @@ export function OnboardingWizard() {
               <Home className="w-5 h-5 text-gray-500" />
               <div>
                 <div className="font-medium text-sm">Home Service</div>
-                <div className="text-xs text-gray-500">Offer services at customer's home</div>
+                <div className="text-xs text-gray-500">Offer services at customer&apos;s home</div>
               </div>
             </div>
             <button
@@ -613,7 +621,7 @@ export function OnboardingWizard() {
       <div className="space-y-6">
         <div>
           <CardTitle className="text-2xl mb-1">Policies & safety</CardTitle>
-          <CardDescription>Set your salon's policies and safety practices</CardDescription>
+          <CardDescription>Set your salon&apos;s policies and safety practices</CardDescription>
         </div>
         <div className="space-y-4">
           <div className="space-y-3">
@@ -689,7 +697,7 @@ export function OnboardingWizard() {
         {data.services.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <PackageOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No services added yet. Click "Add Service" to start building your menu.</p>
+            <p>No services added yet. Click &ldquo;Add Service&rdquo; to start building your menu.</p>
             <p className="text-sm mt-2">You can always add more later from your dashboard.</p>
           </div>
         ) : (
@@ -758,7 +766,7 @@ export function OnboardingWizard() {
                       <select
                         className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                         value={svc.gender}
-                        onChange={e => updateService(idx, "gender", e.target.value)}
+                        onChange={e => updateService(idx, "gender", e.target.value as Gender)}
                       >
                         <option value="unisex">Unisex</option>
                         <option value="women">Women</option>

@@ -156,7 +156,7 @@ export default function OwnerAIHelperPage() {
                         {copied === "tagline" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     </div>
-                    <p className="text-sm bg-purple-50 rounded-lg p-3 border border-purple-100 italic">"{output.tagline}"</p>
+                    <p className="text-sm bg-purple-50 rounded-lg p-3 border border-purple-100 italic">&ldquo;{output.tagline}&rdquo;</p>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -207,7 +207,7 @@ export default function OwnerAIHelperPage() {
                 <li>• Add your specific service names for tailored descriptions</li>
                 <li>• The more details you provide, the better the AI output</li>
                 <li>• You can copy and edit any generated content before saving</li>
-                <li>• Use the SEO title tag to improve your salon's search ranking</li>
+                <li>• Use the SEO title tag to improve your salon&apos;s search ranking</li>
                 <li>• Visit the Insights page for AI-driven suggestions to grow your business</li>
               </ul>
             </div>
