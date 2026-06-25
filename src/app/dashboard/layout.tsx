@@ -20,7 +20,7 @@ export default function DashboardLayout({
 
   return (
     <RoleGuard requiredRole="customer">
-      <div className="min-h-screen bg-background">
+      <div className="flex min-h-screen bg-background">
         <DashboardSidebar
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -28,7 +28,7 @@ export default function DashboardLayout({
           userAvatar={user?.avatar_url}
         />
 
-        <div className="lg:pl-64">
+        <div className="flex-1 flex flex-col">
           <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
             <div className="flex items-center justify-between px-4 h-14">
               <div className="flex items-center gap-3">
