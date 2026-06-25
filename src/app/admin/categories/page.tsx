@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select"
 import { EmptyState } from "@/components/shared/empty-state"
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton"
-import { FolderTree, Plus, Edit3, Trash2, GripVertical, Loader2 } from "lucide-react"
+import { FolderTree, Plus, Edit3, Trash2, Loader2 } from "lucide-react"
 import { CATEGORIES } from "@/data"
 import type { Category } from "@/types"
 

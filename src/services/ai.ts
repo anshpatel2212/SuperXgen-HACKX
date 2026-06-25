@@ -11,7 +11,7 @@ import {
   getEffectivePriceWithOffers, getSalonOffers, getSalonServices,
   computeFinalPrice
 } from '@/services/calculations'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, getMumbaiTodayString } from '@/lib/utils'
 
 const SERVICE_KEYWORDS: Record<string, string[]> = {
   'Bridal Makeup': ['bridal', 'wedding', 'bride', 'engagement makeup', 'wedding makeup'],
@@ -199,8 +199,8 @@ function getLiveContextForSalon(salonId: string) {
     })),
     offers: offers.map(o => ({
       ...o,
-      is_valid: new Date(o.valid_till) >= new Date(),
-      days_remaining: Math.ceil((new Date(o.valid_till).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+      is_valid: o.valid_till >= getMumbaiTodayString(),
+      days_remaining: Math.max(0, Math.ceil((new Date(`${o.valid_till}T23:59:59`).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
     })),
     trust_badge: trustBadge,
     response_badge: responseBadge,
@@ -290,7 +290,7 @@ export function generateRecommendationReasoning(
   }
 
   if (offers.length > 0) {
-    const validOffers = offers.filter(o => o.is_active && new Date(o.valid_till) >= new Date())
+    const validOffers = offers.filter(o => o.is_active && o.valid_till >= getMumbaiTodayString())
     if (validOffers.length > 0) {
       reasons.push(`${validOffers.length} active offer${validOffers.length > 1 ? 's' : ''} available`)
     }
@@ -383,7 +383,6 @@ export function summarizeReviews(salonId: string): AIReviewSummary {
 
   const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
   const positiveCount = reviews.filter(r => r.rating >= 4).length
-  const negativeCount = reviews.filter(r => r.rating <= 2).length
 
   const highComments = reviews.filter(r => r.rating >= 4).map(r => r.comment.toLowerCase())
   const praiseWords = ['amazing', 'excellent', 'best', 'love', 'beautiful', 'wonderful', 'fantastic', 'incredible', 'professional', 'skilled']
@@ -693,10 +692,15 @@ export function getPersonalizedRecommendations(userId: string): {
   })
 
   const activeSalons = approved.filter(s => (computeSalonMetrics(s.id).total_services || 0) > 0)
+  const offset = activeSalons.length > 0 ? userId.length % activeSalons.length : 0
+  const personalizedActiveSalons = [
+    ...activeSalons.slice(offset),
+    ...activeSalons.slice(0, offset),
+  ]
 
   return {
-    recentSalons: activeSalons.slice(0, 4),
+    recentSalons: personalizedActiveSalons.slice(0, 4),
     topRated: sortedByRating.slice(0, 4),
-    popular: sortedByBookings.slice(0, 4),
+    popular: sortedByBookings.length > 0 ? sortedByBookings.slice(0, 4) : sortedByTrust.slice(0, 4),
   }
 }

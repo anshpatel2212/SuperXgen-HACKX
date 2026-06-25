@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Store } from "lucide-react"
 import { SALONS } from "@/data"
+import { updateSalon } from "@/lib/data-service"
 import type { Salon } from "@/types"
 
 export default function EditSalonPage() {
@@ -16,6 +17,7 @@ export default function EditSalonPage() {
   const params = useParams()
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
 
   const salon = SALONS.find((s) => s.id === params.id)
   const isOwner = salon && salon.owner_id === user?.id
@@ -70,9 +72,19 @@ export default function EditSalonPage() {
 
   const handleSave = async (data: Partial<Salon>) => {
     setIsSaving(true)
-    await new Promise((r) => setTimeout(r, 1000))
-    setIsSaving(false)
-    router.push("/owner/salons")
+    setSaveError("")
+    try {
+      const updated = updateSalon(salon.id, data)
+      if (!updated) {
+        setSaveError("Unable to save this salon. Please try again.")
+        return
+      }
+      router.push("/owner/salons")
+    } catch {
+      setSaveError("Unable to save this salon. Please try again.")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -90,6 +102,11 @@ export default function EditSalonPage() {
           </p>
         </div>
       </div>
+      {saveError && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {saveError}
+        </div>
+      )}
       <SalonForm salon={salon} onSave={handleSave} isSaving={isSaving} />
     </div>
   )

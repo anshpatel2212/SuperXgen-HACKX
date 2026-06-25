@@ -28,17 +28,20 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}!</h1>
-          <p className="text-sm text-gray-500 mt-1">Here&apos;s what&apos;s happening with your beauty journey.</p>
+      <div className="premium-card overflow-hidden p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Badge className="mb-3 border-0 bg-glowgo-gold/20 text-amber-700">Customer Trust Passport</Badge>
+            <h1 className="text-2xl font-bold text-gray-950">Welcome back, {firstName}.</h1>
+            <p className="text-sm text-gray-600 mt-1">Track requests, compare trusted salons, and keep your beauty plan organized.</p>
+          </div>
+          <Link href="/explore">
+            <Button className="premium-button min-h-11 rounded-2xl">
+              <Sparkles className="w-4 h-4 mr-1.5" />
+              Book a Salon
+            </Button>
+          </Link>
         </div>
-        <Link href="/explore">
-          <Button className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm">
-            <Sparkles className="w-4 h-4 mr-1.5" />
-            Book a Salon
-          </Button>
-        </Link>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

@@ -3,23 +3,22 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
-import { getOwnerSalons, recomputeOwnerMetrics, getOwnerBookings } from "@/lib/data-service"
+import { getOwnerSalons, recomputeOwnerMetrics } from "@/lib/data-service"
 import type { OwnerDashboardMetrics } from "@/types"
 import { StatCard } from "@/components/owner/stat-card"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { EmptyState } from "@/components/shared/empty-state"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { StatusBadge } from "@/components/shared/status-badge"
-import { formatDate, formatTime, formatPrice, getInitials } from "@/lib/utils"
+import { formatDate, getInitials } from "@/lib/utils"
 import { useDemoReviews } from "@/lib/use-demo-reviews"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
 import {
-  CalendarDays, IndianRupee, Star, Sparkles, ArrowRight,
+  CalendarDays, IndianRupee, Star, Sparkles,
   Clock, Scissors, Store, ShieldCheck, Zap, TrendingUp,
-  Users, Percent, Loader2, Lightbulb, Tag
+  Percent, Loader2, Lightbulb, Tag
 } from "lucide-react"
 import Link from "next/link"
 
@@ -68,16 +67,19 @@ export default function OwnerDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">
+      <div className="premium-card p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+          <Badge className="mb-3 border-0 bg-violet-50 text-violet-700">Owner operations cockpit</Badge>
+          <h1 className="text-xl font-semibold text-gray-950">
             Welcome back, <span className="text-pink-600">{user?.full_name?.split(" ")[0] || "Owner"}</span>
           </h1>
           <p className="text-sm text-gray-500">
             {ownerSalon.name} · {ownerSalon.area} · <span className={trustColor}>Trust Score: {m.trust_score}/100</span>
           </p>
-        </div>
-        <div className="flex gap-2">
+          <p className="mt-2 text-xs text-gray-500">GlowGo can help generate weekly slots and guide setup for salon teams.</p>
+          </div>
+          <div className="flex gap-2">
           <Link href="/owner/insights">
             <Button variant="outline" size="sm" className="gap-2">
               <Lightbulb className="w-4 h-4" /> Insights
@@ -88,6 +90,7 @@ export default function OwnerDashboardPage() {
               <Sparkles className="w-4 h-4" /> New Salon
             </Button>
           </Link>
+          </div>
         </div>
       </div>
 

@@ -1,11 +1,14 @@
 "use client"
 
+import Image from "next/image"
 import { Calendar, Clock, MapPin, XCircle, Star, Home } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn, formatPrice, formatDate, formatTime, getStatusColor } from "@/lib/utils"
 import type { Booking } from "@/types"
+
+const SALON_IMAGE_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200&q=80"
 
 interface BookingCardProps {
   booking: Booking
@@ -21,9 +24,11 @@ export function BookingCard({ booking, onCancel, onReview, onReschedule }: Booki
     <Card className="border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden">
       <CardContent className="p-0">
         <div className="flex items-center gap-3 p-4 border-b border-gray-50">
-          <img
-            src={booking.salon?.logo_url || ""}
+          <Image
+            src={booking.salon?.logo_url || SALON_IMAGE_FALLBACK}
             alt={booking.salon?.name || "Salon"}
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-lg object-cover"
           />
           <div className="flex-1 min-w-0">

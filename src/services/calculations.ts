@@ -42,7 +42,6 @@ export function computeSalonMetrics(salonId: string, isStatic = false): SalonMet
     ? REVIEWS.filter(r => r.salon_id === salonId && r.status === 'approved' && !r.is_moderated)
     : getSalonReviews(salonId)
   const slots = isStatic ? [] : getSalonSlots(salonId)
-  const offers = getSalonOffers(salonId)
 
   const activeServices = services.filter(s => s.active)
 
@@ -58,7 +57,6 @@ export function computeSalonMetrics(salonId: string, isStatic = false): SalonMet
 
   const completedBookings = bookings.filter(b => b.status === 'completed')
   const cancelledBookings = bookings.filter(b => b.status === 'cancelled')
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed')
 
   const revenueTotal = completedBookings.reduce((sum, b) => sum + b.total_price, 0)
 

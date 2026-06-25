@@ -10,16 +10,22 @@ import {
   LayoutGrid,
   ChevronDown,
   Sparkles,
+  GitCompareArrows,
+  MapPinned,
+  ShieldCheck,
+  Tag,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { SalonCard } from "@/components/salon/salon-card"
-import { CATEGORIES, SALONS, SERVICES } from "@/data"
-import { MUMBAI_AREAS, MUMBAI_CITIES, SERVICE_CATEGORIES, cn, parsePriceRange } from "@/lib/utils"
+import { CATEGORIES, OFFERS, SALONS, SERVICES } from "@/data"
+import { MUMBAI_AREAS, MUMBAI_CITIES, SERVICE_CATEGORIES, cn, formatPrice, parsePriceRange } from "@/lib/utils"
 import { getPublicSalons } from "@/lib/public-salons"
-import type { SearchFilters } from "@/types"
+import { computeSalonMetrics } from "@/services/calculations"
+import type { Salon, SearchFilters } from "@/types"
 
 const PUBLIC_SALONS = getPublicSalons(SALONS, SERVICES)
 
@@ -140,6 +146,8 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
   const [filters, setFilters] = useState<SearchFilters>(initialFilters)
   const [visibleCount, setVisibleCount] = useState(8)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [compareIds, setCompareIds] = useState<string[]>([])
+  const [compareOpen, setCompareOpen] = useState(false)
 
   const filteredSalons = useMemo(() => {
     let result = [...PUBLIC_SALONS]
@@ -202,6 +210,9 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
     }
 
     switch (filters.sort_by) {
+      case "trust_score":
+        result.sort((a, b) => computeSalonMetrics(b.id, true).trust_score - computeSalonMetrics(a.id, true).trust_score || a.name.localeCompare(b.name))
+        break
       case "rating":
         result.sort((a, b) => b.rating_avg - a.rating_avg || a.name.localeCompare(b.name))
         break
@@ -227,6 +238,12 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
   }, [filters])
 
   const visibleSalons = filteredSalons.slice(0, visibleCount)
+  const compareSalons = useMemo(
+    () => compareIds
+      .map((id) => PUBLIC_SALONS.find((salon) => salon.id === id))
+      .filter(Boolean) as Salon[],
+    [compareIds]
+  )
   const hasMore = visibleCount < filteredSalons.length
   const activeFilterCount = [
     filters.area,
@@ -249,6 +266,13 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
     setVisibleCount(8)
   }
 
+  const toggleCompare = (salon: Salon) => {
+    setCompareIds((current) => {
+      if (current.includes(salon.id)) return current.filter((id) => id !== salon.id)
+      return [...current.slice(-2), salon.id]
+    })
+  }
+
   const toggleRating = (rating: number) => {
     setFilters((prev) => ({
       ...prev,
@@ -258,10 +282,10 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
   }
 
   return (
-    <div className="pt-16">
+    <div className="bg-background">
       <ExploreHero filters={filters} updateFilter={updateFilter} />
 
-      <div className="sticky top-16 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
+      <div className="sticky top-16 z-40 bg-white/90 backdrop-blur-md border-b border-glowgo-border shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FilterBar
             filters={filters}
@@ -275,21 +299,38 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <AreaQuickChips filters={filters} updateFilter={updateFilter} />
+
+        <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-500">
             Showing <span className="font-semibold text-gray-900">{visibleSalons.length}</span> of{" "}
             <span className="font-semibold text-gray-900">{filteredSalons.length}</span> salons
           </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-center rounded-xl border-glowgo-border bg-white sm:w-auto"
+            onClick={() => compareSalons.length >= 2 && setCompareOpen(true)}
+            disabled={compareSalons.length < 2}
+          >
+            <GitCompareArrows className="mr-1.5 h-4 w-4" />
+            Compare {compareSalons.length > 0 ? `(${compareSalons.length})` : "2-3 salons"}
+          </Button>
         </div>
 
         {visibleSalons.length === 0 ? (
           <EmptyState clearFilters={clearFilters} />
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-6">
               {visibleSalons.map((salon) => (
-                <SalonCard key={salon.id} salon={salon} />
+                <SalonCard
+                  key={salon.id}
+                  salon={salon}
+                  compareSelected={compareIds.includes(salon.id)}
+                  onCompare={toggleCompare}
+                />
               ))}
             </div>
 
@@ -308,6 +349,27 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
           </>
         )}
       </div>
+
+      {compareSalons.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-glowgo-border bg-white/95 px-4 py-3 shadow-[0_-12px_35px_rgba(17,24,39,0.10)] backdrop-blur-xl md:bottom-4 md:left-1/2 md:max-w-lg md:-translate-x-1/2 md:rounded-2xl md:border">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-950">{compareSalons.length} selected for compare</p>
+              <p className="truncate text-xs text-gray-500">{compareSalons.map((salon) => salon.name).join(" vs ")}</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setCompareIds([])}>
+                Clear
+              </Button>
+              <Button size="sm" className="premium-button" disabled={compareSalons.length < 2} onClick={() => setCompareOpen(true)}>
+                Compare
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <CompareDialog open={compareOpen} onOpenChange={setCompareOpen} salons={compareSalons} />
     </div>
   )
 }
@@ -320,25 +382,23 @@ function ExploreHero({
   updateFilter: (key: keyof SearchFilters, value: string) => void
 }) {
   return (
-    <section className="relative py-12 sm:py-16 overflow-hidden">
-      <div className="absolute inset-0 glowgo-gradient" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(212,197,240,0.2),transparent_50%)]" />
+    <section className="relative overflow-hidden mumbai-afterglow py-10 sm:py-14">
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto">
-          <Badge className="mb-4 px-3 py-1 bg-white/60 backdrop-blur-sm text-gray-700 border-0 rounded-full text-xs font-medium">
+        <div className="text-center max-w-3xl mx-auto">
+          <Badge className="mb-4 px-3 py-1 bg-white/70 backdrop-blur-sm text-gray-700 border-0 rounded-full text-xs font-medium">
             <Sparkles className="w-3.5 h-3.5 mr-1.5 text-glowgo-pink" />
-            {PUBLIC_SALONS.length} Verified Salons in Mumbai
+            {PUBLIC_SALONS.length} verified demo salons · Smart capacity-aware booking
           </Badge>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
-            Explore Salons in <span className="gradient-text">Mumbai</span>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-950">
+            Discover verified salons in <span className="gradient-text">Mumbai</span>
           </h1>
-          <p className="mt-3 text-gray-600 text-base sm:text-lg">
-            Find the perfect salon for your next beauty appointment
+          <p className="mt-3 text-gray-600 text-sm sm:text-lg">
+            Filter by service, area, price, trust score, and availability signals before choosing where to book.
           </p>
 
           <div className="mt-6 max-w-xl mx-auto">
-            <div className="flex items-center gap-2 bg-white/80 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/50">
+            <div className="flex items-center gap-2 bg-white/85 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/70">
               <Search className="w-5 h-5 text-gray-400 ml-3 shrink-0" />
               <input
                 type="text"
@@ -363,6 +423,49 @@ function ExploreHero({
   )
 }
 
+function AreaQuickChips({
+  filters,
+  updateFilter,
+}: {
+  filters: SearchFilters
+  updateFilter: (key: keyof SearchFilters, value: string) => void
+}) {
+  const quickAreas = ["Bandra", "Juhu", "Powai", "Andheri", "Colaba", "Lower Parel"]
+  return (
+    <div className="mb-5 rounded-2xl border border-glowgo-border bg-white/80 p-3 shadow-sm">
+      <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-gray-600">
+        <MapPinned className="h-4 w-4 text-glowgo-pink" />
+        Location sorting is demo-safe. Choose your Mumbai area.
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => updateFilter("area", "")}
+          className={cn(
+            "min-h-10 shrink-0 rounded-full border px-4 text-sm font-medium",
+            !filters.area ? "border-glowgo-pink bg-glowgo-soft text-glowgo-pink" : "border-glowgo-border bg-white text-gray-600"
+          )}
+        >
+          All areas
+        </button>
+        {quickAreas.map((area) => (
+          <button
+            key={area}
+            type="button"
+            onClick={() => updateFilter("area", filters.area === area ? "" : area)}
+            className={cn(
+              "min-h-10 shrink-0 rounded-full border px-4 text-sm font-medium",
+              filters.area === area ? "border-glowgo-pink bg-glowgo-soft text-glowgo-pink" : "border-glowgo-border bg-white text-gray-600"
+            )}
+          >
+            {area}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function FilterBar({
   filters,
   updateFilter,
@@ -383,7 +486,7 @@ function FilterBar({
   const filterContent = (
     <div className="space-y-6">
       <div>
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Area</label>
+        <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Area</label>
         <select
           value={filters.area}
           onChange={(e) => updateFilter("area", e.target.value)}
@@ -399,7 +502,7 @@ function FilterBar({
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Service Type</label>
+        <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Service Type</label>
         <select
           value={filters.service_type}
           onChange={(e) => updateFilter("service_type", e.target.value)}
@@ -415,7 +518,7 @@ function FilterBar({
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Price Range</label>
+        <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Price Range</label>
         <div className="flex items-center gap-2">
           <input
             type="number"
@@ -436,7 +539,7 @@ function FilterBar({
       </div>
 
       <div>
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+        <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
           Minimum Rating
         </label>
         <div className="flex gap-1.5">
@@ -461,7 +564,7 @@ function FilterBar({
       <Separator />
 
       <div>
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Gender</label>
+        <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Gender</label>
         <div className="flex gap-2">
           {(["women", "men", "unisex"] as const).map((g) => (
             <button
@@ -570,6 +673,7 @@ function FilterBar({
             >
               <option value="popularity">Most Popular</option>
               <option value="rating">Highest Rated</option>
+              <option value="trust_score">Highest Trust</option>
               <option value="price_low">Price: Low to High</option>
               <option value="price_high">Price: High to Low</option>
             </select>
@@ -628,6 +732,7 @@ function FilterBar({
           >
             <option value="popularity">Most Popular</option>
             <option value="rating">Highest Rated</option>
+            <option value="trust_score">Highest Trust</option>
             <option value="price_low">Price: Low to High</option>
             <option value="price_high">Price: High to Low</option>
           </select>
@@ -643,6 +748,109 @@ function FilterBar({
         </div>
       </div>
     </>
+  )
+}
+
+function CompareDialog({
+  open,
+  onOpenChange,
+  salons,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  salons: Salon[]
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <GitCompareArrows className="h-5 w-5 text-glowgo-pink" />
+            Compare salons
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3 md:grid-cols-3">
+          {salons.map((salon) => {
+            const metrics = computeSalonMetrics(salon.id, true)
+            const topServices = SERVICES.filter((service) => service.salon_id === salon.id && service.active).slice(0, 3)
+            const activeOffers = OFFERS.filter((offer) => offer.salon_id === salon.id && offer.is_active)
+            const prices = topServices.map((service) => service.final_price || service.discounted_price || service.price).filter(Boolean)
+            const priceLabel = prices.length
+              ? `${formatPrice(Math.min(...prices))}${prices.length > 1 ? `-${formatPrice(Math.max(...prices))}` : ""}`
+              : salon.price_range || "Price on request"
+
+            return (
+              <div key={salon.id} className="rounded-2xl border border-glowgo-border bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-bold text-gray-950">{salon.name}</h3>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                      <MapPinned className="h-3.5 w-3.5" />
+                      {salon.area}
+                    </p>
+                  </div>
+                  <Badge className="border-0 bg-emerald-50 text-emerald-700">
+                    {salon.verified ? "Demo verified" : "Pending"}
+                  </Badge>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                  <div className="rounded-xl bg-yellow-50 p-3">
+                    <p className="text-[11px] text-gray-500">Rating</p>
+                    <p className="font-semibold text-gray-950">{salon.rating_avg.toFixed(1)} ({salon.review_count})</p>
+                  </div>
+                  <div className="rounded-xl bg-violet-50 p-3">
+                    <p className="text-[11px] text-gray-500">Trust score</p>
+                    <p className="font-semibold text-gray-950">{metrics.trust_score}/100</p>
+                  </div>
+                  <div className="rounded-xl bg-pink-50 p-3">
+                    <p className="text-[11px] text-gray-500">Price</p>
+                    <p className="font-semibold text-gray-950">{priceLabel}</p>
+                  </div>
+                  <div className="rounded-xl bg-amber-50 p-3">
+                    <p className="text-[11px] text-gray-500">Offers</p>
+                    <p className="font-semibold text-gray-950">{activeOffers.length || "None"}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase text-gray-500">Trust Passport</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["Verified", "Hygiene", "Policy", "Reviews"].map((chip) => (
+                      <span key={chip} className="rounded-full border border-glowgo-border bg-white px-2 py-1 text-[10px] text-gray-600">
+                        <ShieldCheck className="mr-1 inline h-3 w-3 text-emerald-600" />
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-1.5">
+                  <p className="text-xs font-semibold uppercase text-gray-500">Top services</p>
+                  {topServices.length > 0 ? topServices.map((service) => (
+                    <div key={service.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
+                      <span className="truncate">{service.name}</span>
+                      <span className="font-semibold">{formatPrice(service.final_price || service.price)}</span>
+                    </div>
+                  )) : (
+                    <p className="text-xs text-gray-500">No active services</p>
+                  )}
+                </div>
+
+                <div className="mt-4 flex items-center gap-2">
+                  {activeOffers.length > 0 && (
+                    <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                      <Tag className="mr-1 h-3 w-3" />
+                      Offer available
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

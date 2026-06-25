@@ -5,11 +5,31 @@ import { createDemoReview, getReviewsBySalon } from "@/lib/demo-reviews"
 import { releaseDemoSlot, reserveDemoSlot } from "@/lib/demo-slots"
 
 const BASE = "/api"
+const SESSION_KEY = "glowgo_session"
+
+function getDemoAuthHeaders() {
+  if (typeof window === "undefined") return {}
+
+  try {
+    const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "null") as { id?: unknown } | null
+    return typeof session?.id === "string"
+      ? { "x-glowgo-demo-user-id": session.id }
+      : {}
+  } catch {
+    return {}
+  }
+}
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const headers = new Headers(options?.headers)
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json")
+  for (const [key, value] of Object.entries(getDemoAuthHeaders())) {
+    if (!headers.has(key)) headers.set(key, value)
+  }
+
   const res = await fetch(`${BASE}${url}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
     ...options,
+    headers,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Request failed" }))

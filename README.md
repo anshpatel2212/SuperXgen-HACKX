@@ -58,12 +58,32 @@ GlowGo is designed as more than a simple salon booking app. It focuses on three 
 
 ---
 
+## Premium UI Identity
+
+The current UI pass introduces the **Mumbai Afterglow** visual system: warm ivory surfaces, deep charcoal text, blush primary actions, lavender accents, soft trust-gold highlights, frosted cards, and mobile-first spacing.
+
+Presentation-layer additions include:
+
+* Premium mobile-first homepage hero around verified Mumbai salons and conflict-aware scheduling.
+* Smart Booking Orbit visual for duration, capacity, verification, offers, reviews, and policies.
+* GlowGo Trust Passport surfaces on homepage, salon cards, salon detail, and booking review.
+* Mobile bottom navigation for customer, owner, and admin demo areas where it does not conflict with booking CTAs.
+* Explore area chips for demo-safe nearby discovery.
+* 2-3 salon compare flow with trust score, rating, pricing, services, offers, and Trust Passport highlights.
+* Improved `next/image` usage and fallback strategy for salon and review imagery.
+
+These are UI/UX upgrades only. They do not change the demo-local security, persistence, payment, maps, or Supabase production roadmap limitations.
+
+---
+
 ## Key Features
 
 ### For Customers
 
 * Salon discovery and filtering by city, area, services, price, rating, and categories.
+* Mobile-first Explore surface with area chips and a safe 2-3 salon compare flow.
 * Salon detail pages with services, offers, reviews, location, gallery, and contact information.
+* GlowGo Trust Passport visibility before booking.
 * Slot-aware booking flow with date/time selection.
 * Offer-aware pricing and booking summaries.
 * Review submission that persists across customer, owner, and admin views.
@@ -190,6 +210,10 @@ For production, this can be upgraded with OpenAI, Anthropic, or another LLM prov
 ## What Works in the Demo
 
 * Customer discovery and filtering.
+* Mobile-first premium UI surfaces for home, Explore, salon detail, booking, login, and role dashboards.
+* Trust Passport UI for verification, policy, review, and service-fit confidence.
+* Compare salons from Explore.
+* Demo-safe area-based nearby discovery chips.
 * Salon detail pages.
 * Offer-aware booking.
 * Slot-aware booking.
@@ -318,7 +342,7 @@ src/
 │   ├── onboarding/         # Multi-step owner onboarding wizard
 │   ├── owner/              # Owner-specific components
 │   ├── salon/              # Salon cards, gallery, reviews, service displays
-│   ├── shared/             # Shared UI, empty states, status badges
+│   ├── shared/             # Shared UI, trust passport, mobile nav, empty/loading/status states
 │   └── ui/                 # shadcn/ui primitives
 ├── data/                   # Seed/demo data
 ├── lib/                    # Demo repositories, auth helpers, utilities

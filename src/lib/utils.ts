@@ -117,3 +117,7 @@ export const AMENITIES_OPTIONS = [
   'Private Rooms', 'Steam Room', 'Sauna', 'Cafe', 'Bar', 'TV Lounge',
   'Consultation Room', 'Wheelchair Accessible', 'Kids Area'
 ]
+
+export function getMumbaiTodayString(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+}

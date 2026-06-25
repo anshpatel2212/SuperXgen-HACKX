@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import {
   Sparkles,
   Star,
@@ -27,6 +28,8 @@ import { SALONS, SERVICES, CATEGORIES, TESTIMONIALS } from "@/data"
 import { cn } from "@/lib/utils"
 import { HomeSearch } from "@/components/home/home-search"
 import { getPublicSalons } from "@/lib/public-salons"
+import { SmartBookingOrbit, SmartCapacityCard } from "@/components/shared/smart-capacity-card"
+import { TrustPassportSection } from "@/components/shared/trust-passport"
 
 const FEATURES = [
   {
@@ -95,9 +98,11 @@ export default function HomePage() {
     <div className="flex flex-col">
       <HeroSection />
       <StatsSection />
+      <TrustPassportSection />
       <FeaturedSalonsSection salons={featuredSalons} />
-      <CategoriesSection />
       <HowItWorksSection />
+      <SmartCapacitySection />
+      <CategoriesSection />
       <AIAssistantTeaser />
       <FeaturesSection />
       <TestimonialsSection />
@@ -108,45 +113,63 @@ export default function HomePage() {
 
 function HeroSection() {
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden pt-16">
-      <div className="absolute inset-0 glowgo-gradient" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(248,180,200,0.3),transparent_50%),radial-gradient(circle_at_70%_50%,rgba(212,197,240,0.3),transparent_50%)]" />
-
-      <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-glowgo-pink/10 blur-3xl animate-pulse" />
-      <div className="absolute bottom-20 right-10 w-80 h-80 rounded-full bg-glowgo-lavender/10 blur-3xl animate-pulse delay-1000" />
-      <div className="absolute top-1/3 right-1/4 w-32 h-32 rounded-full bg-white/20 blur-2xl" />
-
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-        <div className="max-w-3xl mx-auto text-center">
-          <Badge className="mb-6 px-4 py-1.5 bg-white/60 backdrop-blur-sm text-gray-700 border-0 shadow-sm rounded-full text-xs font-medium">
-            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-glowgo-pink" />
-            Mumbai&apos;s AI-Powered Beauty Demo
+    <section className="relative overflow-hidden mumbai-afterglow">
+      <div className="relative mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.04fr_0.96fr] lg:px-8">
+        <div className="max-w-3xl">
+          <Badge className="mb-4 border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm backdrop-blur-sm">
+            <Sparkles className="mr-1.5 h-3.5 w-3.5 text-glowgo-pink" />
+            Verified salons · Smart booking · Mumbai
           </Badge>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 leading-[1.1]">
-            Your Perfect Look,
-            <br />
-            <span className="gradient-text">Just a Tap Away</span>
+          <h1 className="max-w-full break-words text-4xl font-bold leading-[1.04] text-gray-950 sm:text-5xl lg:text-7xl">
+            Book verified Mumbai salons with smart, conflict-aware scheduling.
           </h1>
 
-          <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Discover top-rated salons, book AI-matched services, and experience beauty like never before in Mumbai.
+          <p className="mt-5 max-w-2xl text-base leading-7 text-gray-600 sm:text-lg">
+            Discover trusted salons, compare services, book available time blocks, and let GlowGo protect customers and salon owners from impossible appointments.
           </p>
 
-          <div className="mt-10 max-w-2xl mx-auto">
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <Link href="/explore">
+              <Button className="h-12 w-full rounded-2xl px-6 text-base premium-button sm:w-auto">
+                Explore Salons
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline" className="h-12 w-full rounded-2xl border-glowgo-border bg-white/80 px-6 text-base text-gray-900 sm:w-auto">
+                Try Demo Accounts
+              </Button>
+            </Link>
+          </div>
+
+          <div className="mt-6 max-w-2xl">
             <HomeSearch />
           </div>
 
-          <div className="mt-8 flex items-center justify-center gap-2 text-sm text-gray-500">
-            <span className="flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" /> 4.8 avg rating
+          <div className="mt-6 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              "Verified salon onboarding",
+              "Owner dashboard",
+              "Admin moderation",
+              "Smart capacity engine",
+            ].map((chip) => (
+              <span key={chip} className="shrink-0 rounded-full border border-white/70 bg-white/75 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm">
+                {chip}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+            <span className="flex items-center gap-1 rounded-full bg-white/70 px-3 py-1.5">
+              <Star className="h-3.5 w-3.5 fill-glowgo-gold text-glowgo-gold" /> 4.8 avg rating
             </span>
-            <span className="text-gray-300">•</span>
-            <span>{catalogAreas} demo areas</span>
-            <span className="text-gray-300">•</span>
-            <span>{publicSalons.length} verified demo salons</span>
+            <span className="rounded-full bg-white/70 px-3 py-1.5">{catalogAreas} demo areas</span>
+            <span className="rounded-full bg-white/70 px-3 py-1.5">{publicSalons.length} verified demo salons</span>
           </div>
         </div>
+
+        <SmartBookingOrbit className="mx-auto w-full max-w-md lg:max-w-none" />
       </div>
     </section>
   )
@@ -154,9 +177,9 @@ function HeroSection() {
 
 function StatsSection() {
   return (
-    <section className="relative -mt-12 z-10">
+    <section className="relative -mt-8 z-10 sm:-mt-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-6">
           {[
             { value: publicSalons.length.toString(), label: "Verified Demo Salons" },
             { value: SERVICES.length.toString(), label: "Bookable Services" },
@@ -164,7 +187,7 @@ function StatsSection() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="glass-card rounded-2xl p-4 sm:p-6 text-center"
+              className="glass-card rounded-2xl p-4 text-center sm:p-6"
             >
               <div className="text-2xl sm:text-3xl font-bold gradient-text">{stat.value}</div>
               <div className="text-xs sm:text-sm text-gray-500 mt-1">{stat.label}</div>
@@ -178,15 +201,15 @@ function StatsSection() {
 
 function FeaturedSalonsSection({ salons }: { salons: Salon[] }) {
   return (
-    <section className="py-16 sm:py-24">
+    <section className="py-14 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between mb-10">
           <div>
             <Badge className="mb-3 px-3 py-1 bg-glowgo-pink/10 text-glowgo-pink border-0 rounded-full text-xs font-medium">
-              Featured
+              Featured verified salons
             </Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Featured Salons</h2>
-            <p className="text-gray-500 mt-2">Handpicked premium salons for you</p>
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-950">Featured verified salons</h2>
+            <p className="text-gray-600 mt-2">Equal-height premium cards with trust, pricing, reviews, and booking signals.</p>
           </div>
           <Link
             href="/explore"
@@ -210,6 +233,24 @@ function FeaturedSalonsSection({ salons }: { salons: Salon[] }) {
             <Button variant="outline" className="rounded-full">
               View All Salons
               <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function SmartCapacitySection() {
+  return (
+    <section className="py-14 sm:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <SmartCapacityCard />
+        <div className="mt-6 text-center">
+          <Link href="/explore?sort=trust_score">
+            <Button variant="outline" className="rounded-2xl border-glowgo-border bg-white">
+              See available salons
+              <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </Link>
         </div>
@@ -264,18 +305,18 @@ function HowItWorksSection() {
   const steps = [
     {
       number: "01",
-      title: "Search & Discover",
-      description: "Use AI-powered search to find the perfect salon and service for your needs in Mumbai.",
+      title: "Discover verified salons",
+      description: "Search by service, area, price, and trust signals across the Mumbai demo catalog.",
     },
     {
       number: "02",
-      title: "Compare & Choose",
-      description: "Browse real reviews, ratings, prices, and photos to make an informed decision.",
+      title: "Book smart time blocks",
+      description: "GlowGo checks service duration, buffers, and capacity before showing bookable times.",
     },
     {
       number: "03",
-      title: "Book & Relax",
-      description: "Send a pending appointment request, then track confirmation from your dashboard.",
+      title: "Trust before confirm",
+      description: "Review policy, verification, price, and service-fit details before submitting.",
     },
   ]
 
@@ -286,8 +327,8 @@ function HowItWorksSection() {
           <Badge className="mb-3 px-3 py-1 bg-glowgo-pink/10 text-glowgo-pink border-0 rounded-full text-xs font-medium">
             How It Works
           </Badge>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Three Simple Steps</h2>
-          <p className="text-gray-500 mt-2">Getting your glam on has never been easier</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">How GlowGo Works</h2>
+          <p className="text-gray-500 mt-2">Discovery, capacity-aware booking, and trust review in one flow.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 relative">
@@ -438,10 +479,11 @@ function TestimonialsSection() {
                   &ldquo;{testimonial.quote}&rdquo;
                 </p>
                 <div className="flex items-center gap-3">
-                  <img
+                  <Image
                     src={testimonial.avatar}
                     alt={testimonial.name}
-                    loading="lazy"
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div>

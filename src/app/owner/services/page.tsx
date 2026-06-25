@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import {
   Card,
   CardContent,
@@ -12,8 +11,6 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import {
   Dialog,
   DialogContent,
@@ -22,37 +19,26 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { ServiceForm } from "@/components/owner/service-form"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { EmptyState } from "@/components/shared/empty-state"
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton"
-import { formatPrice, SERVICE_CATEGORIES } from "@/lib/utils"
+import { formatPrice } from "@/lib/utils"
 import {
   Scissors,
   Plus,
   Clock,
   IndianRupee,
   Percent,
-  Sparkles,
   Edit3,
   Trash2,
-  Loader2,
   Star,
   Store,
 } from "lucide-react"
 import { SALONS, SERVICES } from "@/data"
 import { useAuth } from "@/lib/auth-context"
 import { createService, updateService, deleteService } from "@/lib/data-service"
-import type { Service, Gender, Salon } from "@/types"
+import type { Service, Salon } from "@/types"
 
 export default function OwnerServices() {
   const { user, isLoading: authLoading } = useAuth()
@@ -61,7 +47,6 @@ export default function OwnerServices() {
   const ownerSalonIds = ownerSalons.map((s) => s.id)
   const ownerServices = SERVICES.filter((s) => ownerSalonIds.includes(s.salon_id))
 
-  const [isLoading, setIsLoading] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingService, setEditingService] = useState<Partial<Service> | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
@@ -112,7 +97,7 @@ export default function OwnerServices() {
     setShowDeleteDialog(null)
   }
 
-  if (authLoading || isLoading) {
+  if (authLoading) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">

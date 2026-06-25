@@ -1,9 +1,9 @@
 "use client"
 
-import { Star, ThumbsUp, Flag, BadgeCheck, ImageIcon } from "lucide-react"
+import Image from "next/image"
+import { Star, ThumbsUp, Flag, BadgeCheck } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { cn, formatDate, getInitials } from "@/lib/utils"
 import type { Review } from "@/types"
 
@@ -62,7 +62,14 @@ export function ReviewCard({ review }: ReviewCardProps) {
         <div className="flex gap-2 mt-3">
           {review.images.map((img, i) => (
             <div key={i} className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
-              <img src={img} alt={`Review image ${i + 1}`} className="w-full h-full object-cover" />
+              <Image
+                src={img}
+                alt={`Review image ${i + 1}`}
+                width={64}
+                height={64}
+                unoptimized
+                className="w-full h-full object-cover"
+              />
             </div>
           ))}
         </div>

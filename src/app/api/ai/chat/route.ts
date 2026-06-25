@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchSalons, extractIntent, generateRecommendationReasoning } from '@/services/ai'
+import { z } from 'zod'
+import { searchSalons, extractIntent } from '@/services/ai'
 import { SALONS, SERVICES } from '@/data'
+import { enforceDemoRateLimit, parseJsonBody } from '@/lib/api-security'
 import type { AIIntent } from '@/types'
+
+const chatSchema = z
+  .object({
+    message: z.string().trim().min(1).max(1000),
+    userId: z.string().trim().max(120).optional(),
+    sessionId: z.string().trim().max(120).optional(),
+  })
+  .passthrough()
 
 function generateGeneralResponse(intent: AIIntent, result: { salons: typeof SALONS; reasoning: string }): string {
   if (intent.type === 'summarize') {
@@ -33,15 +43,15 @@ function generateGeneralResponse(intent: AIIntent, result: { salons: typeof SALO
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { message, history } = body
+    const rateLimit = enforceDemoRateLimit(req, 'ai:chat', {
+      limit: 30,
+      windowMs: 60_000,
+    })
+    if (rateLimit) return rateLimit
 
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json(
-        { error: 'Message is required' },
-        { status: 400 }
-      )
-    }
+    const body = await parseJsonBody(req, chatSchema)
+    if (body instanceof NextResponse) return body
+    const { message } = body
 
     const intent = extractIntent(message)
     const result = searchSalons(message, {})

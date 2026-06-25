@@ -1,6 +1,6 @@
 # GlowGo Mumbai Demo Readiness Report
 
-Report date: June 22, 2026
+Report date: June 25, 2026
 
 ## Current Status
 
@@ -8,11 +8,12 @@ GlowGo is more reliable for a role-based hackathon demonstration, but it is not 
 
 Production build status: **Passing**
 
-Lint status: **Improved but not passing**
+Lint status: **Passing**
 
 - Before improvements: 225 findings (50 errors, 175 warnings)
 - After the first implementation batches: 196 findings (44 errors, 152 warnings)
-- Current: 151 findings (33 errors, 118 warnings)
+- Previous current: 151 findings (33 errors, 118 warnings)
+- Current: 0 findings
 
 ## 1. What Was Improved
 
@@ -100,7 +101,10 @@ Lint status: **Improved but not passing**
 
 - All files in the authentication/role-guard batch pass targeted lint.
 - Booking/AI batch has zero targeted lint errors.
-- Production build passes with all 41 routes.
+- Owner salon edits now call the data-service update helper and show save errors instead of discarding changes.
+- Remaining lint-reported direct image tags were converted to `next/image`.
+- Production build passes with all 43 routes.
+- Full lint passes with zero findings.
 - `git diff --check` passes.
 - No commits or pushes were made.
 - The pre-existing `.gitignore` modification was not changed.
@@ -118,8 +122,7 @@ Highest-priority remaining work:
 - Persist owner/admin CRUD operations.
 - Replace seeded analytics scenarios with calculated durable records.
 - Repair the Supabase schema, seed, RLS policies, constraints, and indexes.
-- Resolve the remaining 33 lint errors and 118 warnings.
-- Add automated tests, route error/loading states, image optimization, and accessibility fixes.
+- Add automated tests, route error/loading states, and accessibility fixes.
 
 ## 3. Features That Are Now Working More Reliably
 
@@ -265,14 +268,14 @@ Current answer: “First, one Supabase-backed repository for auth, bookings, fav
 
 - Add one persistent demo repository and cross-role booking visibility.
 - Finish remaining owner/admin actions and replace seeded analytics with repository calculations.
-- Reach a clean lint baseline and add critical-flow tests.
+- Add critical-flow tests.
 
 ## Latest Batch Verification
 
 - Production build: passing.
-- Generated routes: 41.
-- Targeted primary files: zero lint errors; remaining findings are image-optimization warnings.
-- Full lint: 151 findings (33 errors, 118 warnings), improved from 196 (44 errors, 152 warnings) at the start of this batch.
+- Generated routes: 43.
+- Targeted primary files: zero lint findings.
+- Full lint: passing with zero findings.
 - `git diff --check`: passing.
 - No commits or pushes were created.
 - No Supabase migration or large architecture rewrite was started.

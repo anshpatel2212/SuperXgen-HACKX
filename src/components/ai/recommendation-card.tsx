@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Star, MapPin, IndianRupee } from 'lucide-react'
+import Image from 'next/image'
+import { Star, MapPin, IndianRupee, ShieldCheck, Sparkles } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,9 +31,11 @@ export function RecommendationCard({
         <div className="flex items-start gap-3">
           <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-glowgo-cream">
             {salon.logo_url ? (
-              <img
+              <Image
                 src={salon.logo_url}
                 alt={salon.name}
+                width={48}
+                height={48}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -69,11 +72,26 @@ export function RecommendationCard({
                 {salon.price_range}
               </span>
             </div>
-            {reasoning && (
-              <p className="mt-1 text-[11px] leading-tight text-gray-500">
-                {reasoning}
+            <div className="mt-2 rounded-xl border border-glowgo-border bg-glowgo-soft/70 p-2">
+              <p className="flex items-center gap-1 text-[11px] font-semibold text-gray-900">
+                <Sparkles className="h-3 w-3 text-glowgo-pink" />
+                Why GlowGo recommends this
               </p>
-            )}
+              <div className="mt-1 flex flex-wrap gap-1">
+                {["Service match", "Demo verified", "Trust Passport"].map((chip) => (
+                  <span key={chip} className="rounded-full bg-white px-2 py-0.5 text-[10px] text-gray-600">
+                    <ShieldCheck className="mr-0.5 inline h-3 w-3 text-emerald-600" />
+                    {chip}
+                  </span>
+                ))}
+              </div>
+              {reasoning && (
+                <p className="mt-1.5 text-[11px] leading-tight text-gray-500">
+                  {reasoning}
+                </p>
+              )}
+              <p className="mt-1 text-[10px] text-gray-400">Rule-based demo insight from live marketplace data.</p>
+            </div>
           </div>
         </div>
         <div className="mt-2 flex items-center gap-2">

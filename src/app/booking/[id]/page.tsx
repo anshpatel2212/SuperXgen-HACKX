@@ -3,6 +3,7 @@
 import { Suspense, useState, useMemo } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import {
   Sparkles, ChevronLeft, ChevronRight, Clock, MapPin,
   CheckCircle2, Home, Tag,
@@ -15,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { cn, formatPrice, formatDate, formatTime, toDateInputValue } from "@/lib/utils"
+import { cn, formatPrice, formatDate, formatTime, toDateInputValue, getMumbaiTodayString } from "@/lib/utils"
 import { SALONS, SERVICES } from "@/data"
 import { createBooking } from "@/lib/api-client"
 import { useDemoOffers } from "@/lib/demo-offers"
@@ -30,6 +31,7 @@ import {
 import { useAuth } from "@/lib/auth-context"
 import { getLoginHref, getRoleHome } from "@/lib/auth-routing"
 import { isPublicSalon } from "@/lib/public-salons"
+import { PolicyNotice, TrustPassport, TrustPassportMini } from "@/components/shared/trust-passport"
 import type { Offer } from "@/types"
 
 function getNext7Days() {
@@ -45,6 +47,7 @@ function getNext7Days() {
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const SALON_LOGO_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200&q=80"
 
 export default function BookingPage() {
   return (
@@ -123,13 +126,13 @@ function BookingPageContent() {
 
   const handleApplyCoupon = () => {
     setCouponError("")
-    const now = Date.now()
+    const today = getMumbaiTodayString()
     const offer = salonOffers.find(
       (candidate) =>
         candidate.coupon_code.toLowerCase() === couponCode.trim().toLowerCase() &&
         candidate.is_active &&
-        new Date(candidate.valid_from).getTime() <= now &&
-        new Date(candidate.valid_till).getTime() >= now
+        candidate.valid_from <= today &&
+        candidate.valid_till >= today
     )
     if (offer) {
       if (totalAmount >= offer.min_purchase) {
@@ -361,9 +364,11 @@ function BookingPageContent() {
         {step === 1 && (
           <div className="space-y-4 animate-fade-in">
             <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <img
-                src={salon.logo_url}
+              <Image
+                src={salon.logo_url || SALON_LOGO_FALLBACK}
                 alt={salon.name}
+                width={48}
+                height={48}
                 className="w-12 h-12 rounded-lg object-cover"
               />
               <div>
@@ -379,6 +384,7 @@ function BookingPageContent() {
                 </div>
               </div>
             </div>
+            <TrustPassportMini salon={salon} />
 
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Select a Service</h3>
@@ -598,9 +604,11 @@ function BookingPageContent() {
                 <h3 className="font-semibold text-gray-900">Booking Summary</h3>
 
                 <div className="flex items-center gap-3 pb-4 border-b border-gray-50">
-                  <img
-                    src={salon.logo_url}
+                  <Image
+                    src={salon.logo_url || SALON_LOGO_FALLBACK}
                     alt={salon.name}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-lg object-cover"
                   />
                   <div>
@@ -648,6 +656,8 @@ function BookingPageContent() {
 
                 <Separator />
 
+                <TrustPassport salon={salon} service={selectedService} compact />
+
                 {selectedService && (selectedService.confirmation_required || selectedService.instant_booking_allowed === false) && (
                   <div className="rounded-xl border border-amber-100 bg-amber-50/80 p-4 text-sm">
                     <p className="font-semibold text-gray-900">Salon confirmation required</p>
@@ -657,17 +667,7 @@ function BookingPageContent() {
                   </div>
                 )}
 
-                <div className="rounded-xl border border-amber-100 bg-amber-50/80 p-4 text-sm">
-                  <p className="font-semibold text-gray-900">Late arrival policy</p>
-                  <p className="mt-1 text-xs text-amber-800">
-                    Please arrive within 10 minutes of your appointment. Arrivals after 20 minutes may require rescheduling to protect later bookings.
-                  </p>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] text-amber-800">
-                    <span className="rounded-lg bg-white/70 px-2 py-1">0-10 min grace</span>
-                    <span className="rounded-lg bg-white/70 px-2 py-1">10-20 may shorten</span>
-                    <span className="rounded-lg bg-white/70 px-2 py-1">20+ reschedule</span>
-                  </div>
-                </div>
+                <PolicyNotice service={selectedService} />
 
                 <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -835,7 +835,7 @@ function BookingPageContent() {
               </div>
             )}
 
-            <div className="flex justify-between pt-2">
+            <div className="sticky bottom-3 z-20 -mx-1 flex justify-between gap-3 rounded-2xl border border-glowgo-border bg-white/95 p-3 shadow-[0_18px_50px_rgba(17,24,39,0.12)] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
               <Button variant="outline" onClick={() => setStep(2)}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Back
@@ -843,7 +843,7 @@ function BookingPageContent() {
               <Button
                 onClick={handleConfirm}
                 disabled={isSubmitting}
-                className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm min-w-[160px]"
+                className="min-h-11 flex-1 bg-gradient-to-r from-glowgo-pink to-rose-500 text-white hover:opacity-90 shadow-sm sm:min-w-[220px] sm:flex-none"
               >
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">

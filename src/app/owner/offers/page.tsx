@@ -12,8 +12,8 @@ import {
   Plus, Tag, Trash2, Edit3, Check, X, Loader2, Percent, IndianRupee
 } from "lucide-react"
 import { SALONS } from "@/data"
+import { getMumbaiTodayString } from "@/lib/utils"
 
-const DEMO_CURRENT_DATE = "2026-06-22"
 const EMPTY_FORM = {
   title: "",
   description: "",
@@ -60,13 +60,66 @@ export default function OwnerOffersPage() {
 
   const handleSave = async () => {
     const discountValue = Number(form.discount_value)
-    if (!selectedSalonId || !form.title.trim() || !Number.isFinite(discountValue) || discountValue <= 0) {
-      setFormError("Enter a title and a discount value greater than zero.")
+
+    if (!selectedSalonId) {
+      setFormError("A salon must be selected.")
       return
     }
-    if (!form.valid_from || !form.valid_till || form.valid_from > form.valid_till) {
-      setFormError("Choose a valid date range.")
+    if (!form.title.trim()) {
+      setFormError("Offer title is required.")
       return
+    }
+    if (!Number.isFinite(discountValue) || discountValue <= 0) {
+      setFormError("Discount value must be a number greater than 0.")
+      return
+    }
+
+    // 1. Percentage discount rules
+    if (form.discount_type === "percentage") {
+      if (discountValue > 90) {
+        setFormError("Percentage discount cannot exceed 90%.")
+        return
+      }
+    }
+
+    // 2. Fixed discount rules & cap to prevent negative price
+    if (form.discount_type === "fixed") {
+      const minPurchase = Number(form.min_purchase) || 0
+      if (minPurchase < discountValue) {
+        setFormError("Minimum purchase amount must be greater than or equal to the fixed discount value to prevent negative pricing.")
+        return
+      }
+    }
+
+    // 3. Date checks
+    const today = getMumbaiTodayString()
+
+    if (!form.valid_from || !form.valid_till) {
+      setFormError("Please enter both valid-from and valid-till dates.")
+      return
+    }
+
+    if (form.valid_from > form.valid_till) {
+      setFormError("Offer end date cannot be before the start date.")
+      return
+    }
+
+    if (!editingId) {
+      // New offer creation
+      if (form.valid_from < today) {
+        setFormError("Offer start date cannot be in the past for a new offer.")
+        return
+      }
+      if (form.valid_till < today) {
+        setFormError("Offer end date cannot be in the past for a new offer.")
+        return
+      }
+    } else {
+      // Editing existing offer
+      if (form.valid_till < today) {
+        setFormError("Offer end date cannot be in the past.")
+        return
+      }
     }
 
     setSaving(true)
@@ -105,7 +158,15 @@ export default function OwnerOffersPage() {
     updateOffer(offer.id, { is_active: !offer.is_active })
   }
 
-  const isExpired = (validTill: string) => validTill < DEMO_CURRENT_DATE
+  const isExpired = (validTill: string) => validTill < getMumbaiTodayString()
+
+  const getOfferStatus = (offer: Offer) => {
+    if (!offer.is_active) return "Inactive"
+    const today = getMumbaiTodayString()
+    if (offer.valid_till < today) return "Expired"
+    if (offer.valid_from > today) return "Scheduled"
+    return "Active"
+  }
 
   return (
     <div className="space-y-6">
@@ -165,11 +226,21 @@ export default function OwnerOffersPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-medium">Valid From *</label>
-                <Input type="date" value={form.valid_from} onChange={e => setForm(p => ({ ...p, valid_from: e.target.value }))} />
+                <Input
+                  type="date"
+                  min={editingId ? undefined : getMumbaiTodayString()}
+                  value={form.valid_from}
+                  onChange={e => setForm(p => ({ ...p, valid_from: e.target.value }))}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-medium">Valid Till *</label>
-                <Input type="date" value={form.valid_till} onChange={e => setForm(p => ({ ...p, valid_till: e.target.value }))} />
+                <Input
+                  type="date"
+                  min={form.valid_from || getMumbaiTodayString()}
+                  value={form.valid_till}
+                  onChange={e => setForm(p => ({ ...p, valid_till: e.target.value }))}
+                />
               </div>
               <div className="space-y-2 md:col-span-3">
                 <label className="text-xs font-medium">Description</label>
@@ -202,12 +273,18 @@ export default function OwnerOffersPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold">{offer.title}</h3>
-                    <Badge variant={offer.is_active ? "default" : "secondary"} className="text-xs">
-                      {offer.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                    {isExpired(offer.valid_till) && (
-                      <Badge variant="destructive" className="text-xs">Expired</Badge>
-                    )}
+                    {(() => {
+                      const status = getOfferStatus(offer)
+                      let variant: "default" | "secondary" | "destructive" | "outline" = "default"
+                      if (status === "Inactive") variant = "secondary"
+                      else if (status === "Expired") variant = "destructive"
+                      else if (status === "Scheduled") variant = "outline"
+                      return (
+                        <Badge variant={variant} className="text-xs">
+                          {status}
+                        </Badge>
+                      )
+                    })()}
                   </div>
                   <p className="text-sm text-gray-500">{offer.description}</p>
                   <div className="flex items-center gap-4 mt-2 text-sm">

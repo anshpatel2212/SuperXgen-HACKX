@@ -1,11 +1,14 @@
 "use client"
 
-import { MapPin, Clock, Star, Home } from "lucide-react"
+import Image from "next/image"
+import { MapPin, Home } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn, formatPrice, formatDate, formatTime, getStatusColor } from "@/lib/utils"
 import type { Booking } from "@/types"
+
+const SALON_IMAGE_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200&q=80"
 
 interface BookingSummaryProps {
   booking: Booking
@@ -19,9 +22,13 @@ export function BookingSummary({ booking, variant = "default" }: BookingSummaryP
     return (
       <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
         <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 shrink-0">
-          {booking.salon?.logo_url && (
-            <img src={booking.salon.logo_url} alt={booking.salon.name} className="w-full h-full object-cover" />
-          )}
+          <Image
+            src={booking.salon?.logo_url || SALON_IMAGE_FALLBACK}
+            alt={booking.salon?.name || "Salon"}
+            width={40}
+            height={40}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">{booking.salon?.name}</p>
@@ -39,9 +46,11 @@ export function BookingSummary({ booking, variant = "default" }: BookingSummaryP
     <Card className="border-gray-100 overflow-hidden">
       <CardContent className="p-0">
         <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-glowgo-pink/5 to-glowgo-lavender/5 border-b border-gray-50">
-          <img
-            src={booking.salon?.logo_url || ""}
+          <Image
+            src={booking.salon?.logo_url || SALON_IMAGE_FALLBACK}
             alt={booking.salon?.name || "Salon"}
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-lg object-cover"
           />
           <div className="flex-1 min-w-0">
