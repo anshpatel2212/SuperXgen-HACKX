@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Booking, BookingStatus, Offer } from '@/types'
+import { z } from 'zod'
+import type { Booking, Offer } from '@/types'
 import { OFFERS, SALONS, SERVICES } from '@/data'
 import { bookingsStore } from '@/lib/store'
 import { createBookingSchema } from '@/lib/validation/booking'
+import {
+  assertSameOrigin,
+  assertUserIdMatchesRequester,
+  badRequest,
+  bookingStatusSchema,
+  canAccessBooking,
+  enforceDemoRateLimit,
+  forbidden,
+  isAdmin,
+  isSalonOwner,
+  ownedSalonIds,
+  paginationQuerySchema,
+  parseJsonBody,
+  requireDemoUser,
+  searchParamsObject,
+} from '@/lib/api-security'
+
+const bookingListQuerySchema = paginationQuerySchema.extend({
+  userId: z.string().trim().min(1).max(120).optional(),
+  salonId: z.string().trim().min(1).max(120).optional(),
+  status: bookingStatusSchema.optional(),
+})
 
 function resolveOffer(
   offerId: string,
@@ -36,18 +59,38 @@ function resolveOffer(
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url)
-    const userId = searchParams.get('userId')
-    const salonId = searchParams.get('salonId')
-    const status = searchParams.get('status') as BookingStatus | null
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const auth = requireDemoUser(req)
+    if (auth instanceof NextResponse) return auth
+
+    const queryResult = bookingListQuerySchema.safeParse(searchParamsObject(req))
+    if (!queryResult.success) {
+      return badRequest(
+        queryResult.error.issues[0]?.message || 'Invalid booking query',
+        queryResult.error.flatten().fieldErrors
+      )
+    }
+
+    const { userId, salonId, status, page, limit } = queryResult.data
+
+    if (userId) {
+      const userMismatch = assertUserIdMatchesRequester(auth, userId)
+      if (userMismatch) return userMismatch
+    }
+
+    if (salonId && !isAdmin(auth) && !isSalonOwner(auth, salonId)) {
+      return forbidden('Requested salon does not belong to the authenticated demo user')
+    }
 
     let filtered = [...bookingsStore]
 
-    if (userId) {
-      filtered = filtered.filter((b) => b.user_id === userId)
+    if (auth.role === 'customer') {
+      filtered = filtered.filter((b) => b.user_id === auth.id)
+    } else if (auth.role === 'owner') {
+      const allowedSalonIds = new Set(ownedSalonIds(auth))
+      filtered = filtered.filter((b) => allowedSalonIds.has(b.salon_id))
     }
+
+    if (userId) filtered = filtered.filter((b) => b.user_id === userId)
     if (salonId) {
       filtered = filtered.filter((b) => b.salon_id === salonId)
     }
@@ -87,17 +130,20 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const result = createBookingSchema.safeParse(await req.json())
+    const originError = assertSameOrigin(req)
+    if (originError) return originError
 
-    if (!result.success) {
-      return NextResponse.json(
-        {
-          error: result.error.issues[0]?.message || 'Invalid booking details',
-          issues: result.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      )
-    }
+    const rateLimit = enforceDemoRateLimit(req, 'bookings:create', {
+      limit: 20,
+      windowMs: 60_000,
+    })
+    if (rateLimit) return rateLimit
+
+    const auth = requireDemoUser(req)
+    if (auth instanceof NextResponse) return auth
+
+    const bookingInput = await parseJsonBody(req, createBookingSchema)
+    if (bookingInput instanceof NextResponse) return bookingInput
 
     const {
       user_id,
@@ -111,7 +157,14 @@ export async function POST(req: NextRequest) {
       offer_id,
       demo_offer,
       slot_id,
-    } = result.data
+    } = bookingInput
+
+    const userMismatch = assertUserIdMatchesRequester(auth, user_id)
+    if (userMismatch) return userMismatch
+
+    if (auth.role === 'owner') {
+      return forbidden('Owners cannot create customer bookings through this endpoint')
+    }
 
     const salon = SALONS.find((s) => s.id === salon_id)
     if (!salon) {
@@ -173,6 +226,10 @@ export async function POST(req: NextRequest) {
     }
 
     bookingsStore.push(booking)
+
+    if (!canAccessBooking(auth, booking)) {
+      return forbidden('Created booking is outside the authenticated demo user scope')
+    }
 
     return NextResponse.json(
       { ...booking, salon, service },

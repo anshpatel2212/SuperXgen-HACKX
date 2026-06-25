@@ -1,10 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { SALONS, SERVICES } from '@/data'
 import { generateRecommendationReasoning, extractIntent } from '@/services/ai'
+import { enforceDemoRateLimit, parseJsonBody } from '@/lib/api-security'
+
+const recommendationSchema = z
+  .object({
+    preferences: z
+      .object({
+        query: z.string().trim().max(500).optional(),
+        service: z.string().trim().max(120).optional(),
+        area: z.string().trim().max(120).optional(),
+        gender: z.string().trim().max(40).optional(),
+      })
+      .partial()
+      .optional(),
+    userId: z.string().trim().max(120).optional(),
+  })
+  .passthrough()
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const rateLimit = enforceDemoRateLimit(req, 'ai:recommend', {
+      limit: 40,
+      windowMs: 60_000,
+    })
+    if (rateLimit) return rateLimit
+
+    const body = await parseJsonBody(req, recommendationSchema)
+    if (body instanceof NextResponse) return body
     const { preferences } = body
 
     const query =

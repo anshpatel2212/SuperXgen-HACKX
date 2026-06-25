@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getReviewsBySalon } from '@/lib/demo-reviews'
 import { summarizeReviews } from '@/services/ai'
+import { enforceDemoRateLimit, idSchema, parseJsonBody } from '@/lib/api-security'
+
+const summarizeReviewsSchema = z
+  .object({
+    salonId: idSchema,
+  })
+  .strict()
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { salonId } = body
+    const rateLimit = enforceDemoRateLimit(req, 'ai:summarize-reviews', {
+      limit: 40,
+      windowMs: 60_000,
+    })
+    if (rateLimit) return rateLimit
 
-    if (!salonId || typeof salonId !== 'string') {
-      return NextResponse.json(
-        { error: 'salonId is required' },
-        { status: 400 }
-      )
-    }
+    const body = await parseJsonBody(req, summarizeReviewsSchema)
+    if (body instanceof NextResponse) return body
+    const { salonId } = body
 
     const salonReviews = getReviewsBySalon(salonId, { publicOnly: true })
 

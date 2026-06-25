@@ -1,14 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { SALONS, SERVICES } from '@/data'
 import { bookingsStore } from '@/lib/store'
 import type { BookingStatus } from '@/types'
+import {
+  assertSameOrigin,
+  badRequest,
+  bookingStatusSchema,
+  canAccessBooking,
+  dateSchema,
+  enforceDemoRateLimit,
+  forbidden,
+  idSchema,
+  isAdmin,
+  parseJsonBody,
+  requireDemoUser,
+  timeSchema,
+} from '@/lib/api-security'
+
+const updateBookingSchema = z
+  .object({
+    status: bookingStatusSchema.optional(),
+    booking_date: dateSchema.optional(),
+    booking_time: timeSchema.optional(),
+  })
+  .strict()
+  .refine(
+    (value) => Boolean(value.status || value.booking_date || value.booking_time),
+    "Provide at least one booking field to update"
+  )
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const auth = requireDemoUser(_req)
+    if (auth instanceof NextResponse) return auth
+
+    const idResult = idSchema.safeParse((await params).id)
+    if (!idResult.success) return badRequest('Invalid booking id')
+    const id = idResult.data
 
     const booking = bookingsStore.find((b) => b.id === id)
 
@@ -17,6 +49,10 @@ export async function GET(
         { error: 'Booking not found' },
         { status: 404 }
       )
+    }
+
+    if (!canAccessBooking(auth, booking)) {
+      return forbidden('You do not have access to this booking')
     }
 
     return NextResponse.json({
@@ -38,8 +74,24 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const body = await req.json()
+    const originError = assertSameOrigin(req)
+    if (originError) return originError
+
+    const rateLimit = enforceDemoRateLimit(req, 'bookings:update', {
+      limit: 30,
+      windowMs: 60_000,
+    })
+    if (rateLimit) return rateLimit
+
+    const auth = requireDemoUser(req)
+    if (auth instanceof NextResponse) return auth
+
+    const idResult = idSchema.safeParse((await params).id)
+    if (!idResult.success) return badRequest('Invalid booking id')
+    const id = idResult.data
+
+    const body = await parseJsonBody(req, updateBookingSchema)
+    if (body instanceof NextResponse) return body
     const { status, booking_date, booking_time } = body
 
     const bookingIndex = bookingsStore.findIndex((b) => b.id === id)
@@ -60,6 +112,18 @@ export async function PATCH(
     }
 
     const booking = bookingsStore[bookingIndex]
+
+    if (!canAccessBooking(auth, booking)) {
+      return forbidden('You do not have access to this booking')
+    }
+
+    if (auth.role === 'customer' && !isAdmin(auth)) {
+      const onlyCancellingOwnBooking =
+        status === 'cancelled' && !booking_date && !booking_time && booking.user_id === auth.id
+      if (!onlyCancellingOwnBooking) {
+        return forbidden('Customers can only cancel their own demo bookings')
+      }
+    }
 
     if (status) {
       const allowed = validTransitions[booking.status] || []

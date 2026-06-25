@@ -1,23 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { SALONS } from '@/data'
 import {
   createDemoReview,
   filterDemoReviews,
   getDemoReviews,
 } from '@/lib/demo-reviews'
+import {
+  assertSameOrigin,
+  assertUserIdMatchesRequester,
+  badRequest,
+  enforceDemoRateLimit,
+  idSchema,
+  isAdmin,
+  parseJsonBody,
+  paginationQuerySchema,
+  requireDemoUser,
+  searchParamsObject,
+} from '@/lib/api-security'
+
+const reviewQuerySchema = paginationQuerySchema.extend({
+  salonId: idSchema.optional(),
+  userId: idSchema.optional(),
+})
+
+const createReviewSchema = z
+  .object({
+    user_id: idSchema,
+    salon_id: idSchema,
+    booking_id: idSchema.optional().or(z.literal("")),
+    rating: z.coerce.number().int().min(1).max(5),
+    title: z.string().trim().max(120).default(""),
+    comment: z.string().trim().min(10).max(2000),
+    images: z.array(z.string().url()).max(6).default([]),
+  })
+  .strict()
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url)
-    const salonId = searchParams.get('salonId')
-    const userId = searchParams.get('userId')
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
+    const queryResult = reviewQuerySchema.safeParse(searchParamsObject(req))
+    if (!queryResult.success) {
+      return badRequest(
+        queryResult.error.issues[0]?.message || 'Invalid reviews query',
+        queryResult.error.flatten().fieldErrors
+      )
+    }
+
+    const { salonId, userId, page, limit } = queryResult.data
+    const auth = userId || !salonId ? requireDemoUser(req) : null
+
+    if (auth instanceof NextResponse) return auth
+
+    if (userId && auth) {
+      const userMismatch = assertUserIdMatchesRequester(auth, userId)
+      if (userMismatch) return userMismatch
+    }
+
+    const publicOnly = Boolean(salonId) && !userId && !auth
 
     const filtered = filterDemoReviews(getDemoReviews(), {
-      salonId: salonId || undefined,
-      userId: userId || undefined,
-      publicOnly: Boolean(salonId),
+      salonId,
+      userId: auth && !isAdmin(auth) ? userId || auth.id : userId,
+      publicOnly,
     })
 
     const total = filtered.length
@@ -47,22 +91,24 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const originError = assertSameOrigin(req)
+    if (originError) return originError
+
+    const rateLimit = enforceDemoRateLimit(req, 'reviews:create', {
+      limit: 20,
+      windowMs: 60_000,
+    })
+    if (rateLimit) return rateLimit
+
+    const auth = requireDemoUser(req)
+    if (auth instanceof NextResponse) return auth
+
+    const body = await parseJsonBody(req, createReviewSchema)
+    if (body instanceof NextResponse) return body
     const { user_id, salon_id, booking_id, rating, title, comment, images } = body
 
-    if (!user_id || !salon_id || !rating || !comment) {
-      return NextResponse.json(
-        { error: 'Missing required fields: user_id, salon_id, rating, comment' },
-        { status: 400 }
-      )
-    }
-
-    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-      return NextResponse.json(
-        { error: 'Rating must be between 1 and 5' },
-        { status: 400 }
-      )
-    }
+    const userMismatch = assertUserIdMatchesRequester(auth, user_id)
+    if (userMismatch) return userMismatch
 
     const salon = SALONS.find((s) => s.id === salon_id)
     if (!salon) {
@@ -72,15 +118,20 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const review = createDemoReview({
-      user_id,
-      salon_id,
-      booking_id: booking_id || '',
-      rating,
-      title: title || '',
-      comment,
-      images: images || [],
-    })
+    let review
+    try {
+      review = createDemoReview({
+        user_id,
+        salon_id,
+        booking_id: booking_id || '',
+        rating,
+        title,
+        comment,
+        images,
+      })
+    } catch (error) {
+      return badRequest(error instanceof Error ? error.message : 'Invalid review')
+    }
 
     return NextResponse.json(review, { status: 201 })
   } catch (error) {
