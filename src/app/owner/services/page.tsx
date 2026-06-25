@@ -242,6 +242,7 @@ export default function OwnerServices() {
       )}
 
       <ServiceForm
+        key={editingService?.id || (showAddForm ? "new-service" : "closed-service")}
         open={showAddForm}
         onOpenChange={(open) => {
           setShowAddForm(open)

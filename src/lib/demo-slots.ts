@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react"
 import { SALONS, SERVICES } from "@/data"
 import { slotsStore } from "@/lib/store"
-import type { AvailabilitySlot } from "@/types"
+import type { AvailabilitySlot, Service } from "@/types"
 
 const SLOTS_KEY = "glowgo_demo_slots_v1"
 const SLOTS_EVENT = "glowgo:slots-changed"
@@ -293,6 +293,125 @@ export function getBookableTimes(
       )
     ),
   ]
+}
+
+export interface ServiceAwareSlotBlock {
+  start_time: string
+  end_time: string
+  slots: AvailabilitySlot[]
+  required_minutes: number
+}
+
+function toMinutes(value: string): number | null {
+  const [hours, minutes] = value.slice(0, 5).split(":").map(Number)
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null
+  return hours * 60 + minutes
+}
+
+function isSlotCompatibleWithService(slot: AvailabilitySlot, service?: Service | null) {
+  return !slot.service_id || !service || slot.service_id === service.id
+}
+
+export function getServiceBufferMinutes(service?: Service | null) {
+  if (!service) return 0
+  return Math.max(0, service.buffer_before_minutes || 0) + Math.max(0, service.buffer_after_minutes || 0)
+}
+
+export function getServiceRequiredMinutes(service?: Service | null) {
+  if (!service) return 0
+  return Math.max(1, service.duration_minutes || 30) + getServiceBufferMinutes(service)
+}
+
+export function getServiceAwareBookableBlocks(
+  slots: AvailabilitySlot[],
+  date: string,
+  service?: Service | null
+): ServiceAwareSlotBlock[] {
+  if (!service) {
+    return getBookableSlots(slots, date, null).map((slot) => ({
+      start_time: slot.start_time.slice(0, 5),
+      end_time: slot.end_time.slice(0, 5),
+      slots: [slot],
+      required_minutes: 0,
+    }))
+  }
+
+  const requiredMinutes = getServiceRequiredMinutes(service)
+  const candidates = slots
+    .filter(
+      (slot) =>
+        slot.slot_date === date &&
+        isDemoSlotAvailable(slot) &&
+        isSlotCompatibleWithService(slot, service)
+    )
+    .sort((a, b) => a.start_time.localeCompare(b.start_time))
+
+  const blocks: ServiceAwareSlotBlock[] = []
+  const seenStarts = new Set<string>()
+
+  candidates.forEach((slot, index) => {
+    const start = toMinutes(slot.start_time)
+    const end = toMinutes(slot.end_time)
+    if (start === null || end === null || end <= start) return
+
+    const blockSlots = [slot]
+    let blockEnd = end
+
+    if (blockEnd - start < requiredMinutes) {
+      for (let nextIndex = index + 1; nextIndex < candidates.length; nextIndex += 1) {
+        const nextSlot = candidates[nextIndex]
+        const nextStart = toMinutes(nextSlot.start_time)
+        const nextEnd = toMinutes(nextSlot.end_time)
+        if (nextStart === null || nextEnd === null || nextEnd <= nextStart) break
+        if (nextStart !== blockEnd) break
+
+        blockSlots.push(nextSlot)
+        blockEnd = nextEnd
+        if (blockEnd - start >= requiredMinutes) break
+      }
+    }
+
+    if (blockEnd - start >= requiredMinutes) {
+      const startTime = slot.start_time.slice(0, 5)
+      if (!seenStarts.has(startTime)) {
+        seenStarts.add(startTime)
+        blocks.push({
+          start_time: startTime,
+          end_time: blockSlots[blockSlots.length - 1].end_time.slice(0, 5),
+          slots: blockSlots,
+          required_minutes: requiredMinutes,
+        })
+      }
+    }
+  })
+
+  return blocks
+}
+
+export function getServiceAwareBookableTimes(
+  slots: AvailabilitySlot[],
+  date: string,
+  service?: Service | null
+) {
+  return getServiceAwareBookableBlocks(slots, date, service).map((block) => block.start_time)
+}
+
+export function getServiceAvailabilityMessage(
+  slots: AvailabilitySlot[],
+  date: string,
+  service?: Service | null
+) {
+  if (!service) return "Select a service to see matching time blocks."
+  const basicSlots = getBookableSlots(slots, date, service.id)
+  if (basicSlots.length === 0) return "No available slots on this date. Choose another day."
+
+  const requiredMinutes = getServiceRequiredMinutes(service)
+  const bufferMinutes = getServiceBufferMinutes(service)
+  if (bufferMinutes > 0) {
+    return `This service needs ${requiredMinutes} continuous minutes including prep and cleanup buffers. No matching time block is available on this date.`
+  }
+  return `This service needs ${requiredMinutes} continuous minutes. No matching time block is available on this date.`
 }
 
 export function useDemoSlots(salonId?: string) {

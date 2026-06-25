@@ -37,6 +37,7 @@ import { formatDate, getInitials, MUMBAI_AREAS } from "@/lib/utils"
 import { createSalon } from "@/lib/data-service"
 import { SALONS } from "@/data"
 import { useAuth } from "@/lib/auth-context"
+import { isPublicSalon } from "@/lib/public-salons"
 import type { Salon } from "@/types"
 import {
   Store,
@@ -120,9 +121,9 @@ export default function OwnerSalons() {
         <EmptyState
           icon={Store}
           title="You haven't created any salons yet"
-          description="Add your first salon to start receiving bookings on GlowGo Mumbai"
-          actionLabel="Add Your First Salon"
-          onAction={() => setShowCreate(true)}
+          description="Complete verification-aware onboarding before submitting your first salon for review."
+          actionLabel="Start Onboarding"
+          onAction={() => router.push("/owner/onboarding")}
         />
         <CreateDialog
           open={showCreate}
@@ -144,14 +145,16 @@ export default function OwnerSalons() {
           <h1 className="text-xl font-semibold">My Salons</h1>
           <p className="text-sm text-muted-foreground">Manage your salon portfolio</p>
         </div>
-        <Button size="sm" onClick={() => setShowCreate(true)}>
+        <Button size="sm" onClick={() => router.push("/owner/onboarding")}>
           <Plus className="size-3.5" />
-          Add New Salon
+          Start Onboarding
         </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {ownerSalons.map((salon) => (
+        {ownerSalons.map((salon) => {
+          const publicSalon = isPublicSalon(salon)
+          return (
           <Card key={salon.id} className="group transition-shadow hover:shadow-md">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -185,23 +188,36 @@ export default function OwnerSalons() {
               <p className="line-clamp-2 text-xs text-muted-foreground">
                 {salon.description || "No description yet"}
               </p>
+              {!publicSalon && (
+                <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-700">
+                  Complete verification and valid services to publish this salon.
+                </p>
+              )}
             </CardContent>
             <CardFooter className="gap-1.5">
               <Button variant="default" size="sm" onClick={() => router.push(`/owner/salons/${salon.id}/edit`)}>
                 <Settings className="size-3.5" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm" onClick={() => router.push(`/salon/${salon.id}`)}>
-                <Eye className="size-3.5" />
-                View
-              </Button>
+              {publicSalon ? (
+                <Button variant="outline" size="sm" onClick={() => router.push(`/salon/${salon.id}`)}>
+                  <Eye className="size-3.5" />
+                  Public View
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled title="Pending verification or missing valid services">
+                  <Eye className="size-3.5" />
+                  Not Public
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => router.push(`/owner/services?salonId=${salon.id}`)}>
                 <Scissors className="size-3.5" />
                 Services
               </Button>
             </CardFooter>
           </Card>
-        ))}
+          )
+        })}
       </div>
 
       <CreateDialog

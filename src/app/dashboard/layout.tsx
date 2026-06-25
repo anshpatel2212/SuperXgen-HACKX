@@ -57,7 +57,7 @@ export default function DashboardLayout({
             </div>
           </header>
 
-          <main className="p-4 sm:p-6 lg:p-8">
+          <main className="px-4 pb-4 pt-4 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
             {children}
           </main>
         </div>

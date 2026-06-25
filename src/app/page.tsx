@@ -26,6 +26,7 @@ import type { Salon } from "@/types"
 import { SALONS, SERVICES, CATEGORIES, TESTIMONIALS } from "@/data"
 import { cn } from "@/lib/utils"
 import { HomeSearch } from "@/components/home/home-search"
+import { getPublicSalons } from "@/lib/public-salons"
 
 const FEATURES = [
   {
@@ -85,8 +86,9 @@ const CATEGORY_GRADIENTS = [
 
 const CATEGORY_ICONS = [Sparkles, Droplets, Scissors, Flower2, Zap, Hand, Heart, Sun]
 
-const featuredSalons = SALONS.filter((s) => s.featured).slice(0, 6)
-const catalogAreas = new Set(SALONS.map((salon) => `${salon.city}:${salon.area}`)).size
+const publicSalons = getPublicSalons(SALONS, SERVICES)
+const featuredSalons = publicSalons.filter((s) => s.featured).slice(0, 6)
+const catalogAreas = new Set(publicSalons.map((salon) => `${salon.city}:${salon.area}`)).size
 
 export default function HomePage() {
   return (
@@ -142,7 +144,7 @@ function HeroSection() {
             <span className="text-gray-300">•</span>
             <span>{catalogAreas} demo areas</span>
             <span className="text-gray-300">•</span>
-            <span>{SALONS.length} demo salons</span>
+            <span>{publicSalons.length} verified demo salons</span>
           </div>
         </div>
       </div>
@@ -156,7 +158,7 @@ function StatsSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-3 gap-4 sm:gap-6">
           {[
-            { value: SALONS.length.toString(), label: "Demo Salons" },
+            { value: publicSalons.length.toString(), label: "Verified Demo Salons" },
             { value: SERVICES.length.toString(), label: "Bookable Services" },
             { value: catalogAreas.toString(), label: "Mumbai Areas" },
           ].map((stat) => (
@@ -197,7 +199,7 @@ function FeaturedSalonsSection({ salons }: { salons: Salon[] }) {
 
         <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 snap-x snap-mandatory -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-none">
           {salons.map((salon) => (
-            <div key={salon.id} className="min-w-[280px] sm:min-w-[300px] snap-start">
+            <div key={salon.id} className="flex-none w-[280px] sm:w-[320px] snap-start">
               <SalonCard salon={salon} />
             </div>
           ))}
@@ -336,7 +338,7 @@ function AIAssistantTeaser() {
                 <Link href="/explore">
                   <Button
                     variant="outline"
-                    className="h-12 px-8 border-white/20 text-white hover:bg-white/10 rounded-xl text-base"
+                    className="h-12 px-8 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white rounded-xl text-base"
                   >
                     Browse Salons
                   </Button>
@@ -439,6 +441,7 @@ function TestimonialsSection() {
                   <img
                     src={testimonial.avatar}
                     alt={testimonial.name}
+                    loading="lazy"
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div>

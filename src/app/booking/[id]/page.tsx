@@ -20,12 +20,16 @@ import { SALONS, SERVICES } from "@/data"
 import { createBooking } from "@/lib/api-client"
 import { useDemoOffers } from "@/lib/demo-offers"
 import {
-  getBookableSlots,
-  getBookableTimes,
+  getServiceAvailabilityMessage,
+  getServiceAwareBookableBlocks,
+  getServiceAwareBookableTimes,
+  getServiceBufferMinutes,
+  getServiceRequiredMinutes,
   useDemoSlots,
 } from "@/lib/demo-slots"
 import { useAuth } from "@/lib/auth-context"
 import { getLoginHref, getRoleHome } from "@/lib/auth-routing"
+import { isPublicSalon } from "@/lib/public-salons"
 import type { Offer } from "@/types"
 
 function getNext7Days() {
@@ -85,6 +89,10 @@ function BookingPageContent() {
   const [couponApplied, setCouponApplied] = useState<Offer | null>(null)
   const [couponError, setCouponError] = useState("")
   const [notes, setNotes] = useState("")
+  const [isGroupRequest, setIsGroupRequest] = useState(false)
+  const [partySize, setPartySize] = useState("2")
+  const [additionalServiceIds, setAdditionalServiceIds] = useState<string[]>([])
+  const [groupNote, setGroupNote] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -93,23 +101,17 @@ function BookingPageContent() {
   const salonServices = SERVICES.filter((s) => s.salon_id === salonId && s.active)
 
   const selectedService = salonServices.find((s) => s.id === selectedServiceId)
+  const additionalServices = salonServices.filter((service) => additionalServiceIds.includes(service.id))
   const days = useMemo(() => getNext7Days(), [])
-  const availableTimes = useMemo(
-    () =>
-      selectedDate
-        ? getBookableTimes(salonSlots, selectedDate, selectedServiceId)
-        : [],
-    [salonSlots, selectedDate, selectedServiceId]
-  )
-  const selectedSlot = useMemo(
-    () =>
-      selectedDate && selectedTime
-        ? getBookableSlots(salonSlots, selectedDate, selectedServiceId).find(
-            (slot) => slot.start_time.slice(0, 5) === selectedTime
-          ) || null
-        : null,
-    [salonSlots, selectedDate, selectedServiceId, selectedTime]
-  )
+  const serviceAwareBlocks = selectedDate
+    ? getServiceAwareBookableBlocks(salonSlots, selectedDate, selectedService)
+    : []
+  const availableTimes = serviceAwareBlocks.map((block) => block.start_time)
+  const selectedTimeBlock = serviceAwareBlocks.find((block) => block.start_time === selectedTime) || null
+  const selectedSlot = selectedTimeBlock?.slots[0] || null
+  const requiredMinutes = getServiceRequiredMinutes(selectedService)
+  const bufferMinutes = getServiceBufferMinutes(selectedService)
+  const groupRequestAllowed = selectedService?.group_booking_allowed !== false
 
   const totalAmount = selectedService ? (selectedService.final_price || selectedService.price) : 0
   const discountAmount = couponApplied
@@ -169,6 +171,31 @@ function BookingPageContent() {
       setStep(2)
       return
     }
+    if (isGroupRequest && (!/^\d+$/.test(partySize) || Number(partySize) < 2 || Number(partySize) > 20)) {
+      setError("Group booking party size must be between 2 and 20.")
+      setStep(3)
+      return
+    }
+    if (isGroupRequest && !groupRequestAllowed) {
+      setError("This service is not configured for group booking requests.")
+      setStep(3)
+      return
+    }
+
+    const bookingNotes = [
+      notes.trim(),
+      selectedService
+        ? `Smart scheduling: ${selectedService.name} needs ${requiredMinutes} continuous minutes${bufferMinutes > 0 ? ` including ${bufferMinutes} minutes of prep/cleanup buffer` : ""}.`
+        : "",
+      isGroupRequest
+        ? [
+            "Group booking request - requires salon confirmation.",
+            `Party size: ${partySize}`,
+            additionalServices.length > 0 ? `Additional services requested: ${additionalServices.map((service) => service.name).join(", ")}` : "",
+            groupNote.trim() ? `Group note: ${groupNote.trim()}` : "",
+          ].filter(Boolean).join("\n")
+        : "",
+    ].filter(Boolean).join("\n\n")
 
     setIsSubmitting(true)
     setError(null)
@@ -181,7 +208,7 @@ function BookingPageContent() {
         booking_time: selectedTime,
         service_mode: isHomeService ? "home" : "salon",
         address_text: isHomeService ? homeAddress.trim() : "",
-        notes,
+        notes: bookingNotes,
         offer_id: couponApplied?.id || null,
         demo_offer: couponApplied || undefined,
         slot_id: selectedSlot?.id || null,
@@ -203,6 +230,23 @@ function BookingPageContent() {
           <p className="text-sm text-gray-500 mt-1">The salon you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/explore">
             <Button className="mt-4">Browse Salons</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isPublicSalon(salon, salonServices)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-glowgo-pink/5 via-glowgo-cream to-glowgo-lavender/5">
+        <div className="w-full max-w-md text-center">
+          <h2 className="text-xl font-semibold text-gray-900">Booking Not Available</h2>
+          <p className="text-sm text-gray-500 mt-2">
+            This salon is pending verification or does not have valid bookable services yet.
+            Please choose a verified salon from Explore.
+          </p>
+          <Link href="/explore">
+            <Button className="mt-4">Browse Verified Salons</Button>
           </Link>
         </div>
       </div>
@@ -244,6 +288,12 @@ function BookingPageContent() {
               <span className="text-gray-500">Time</span>
               <span className="font-medium text-gray-900">{selectedTime && formatTime(selectedTime)}</span>
             </div>
+            {isGroupRequest && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Group Request</span>
+                <span className="font-medium text-gray-900">{partySize} people, salon confirmation needed</span>
+              </div>
+            )}
             <Separator />
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">Amount Due</span>
@@ -360,12 +410,17 @@ function BookingPageContent() {
                                 Popular
                               </Badge>
                             )}
+                            {(service.confirmation_required || service.instant_booking_allowed === false) && (
+                              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 text-[10px]">
+                                Salon confirmation
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{service.description}</p>
                           <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {service.duration_minutes} min
+                              {getServiceRequiredMinutes(service)} min block
                             </span>
                           </div>
                         </div>
@@ -411,10 +466,10 @@ function BookingPageContent() {
                       key={dateStr}
                       type="button"
                       disabled={
-                        getBookableTimes(
+                        getServiceAwareBookableTimes(
                           salonSlots,
                           dateStr,
-                          selectedServiceId
+                          selectedService
                         ).length === 0
                       }
                       onClick={() => {
@@ -427,10 +482,10 @@ function BookingPageContent() {
                           ? "border-glowgo-pink bg-glowgo-pink/5 ring-1 ring-glowgo-pink/20"
                           : "border-gray-100 bg-white hover:border-gray-200",
                         isToday && "border-glowgo-pink/30",
-                        getBookableTimes(
+                        getServiceAwareBookableTimes(
                           salonSlots,
                           dateStr,
-                          selectedServiceId
+                          selectedService
                         ).length === 0 &&
                           "cursor-not-allowed opacity-40"
                       )}
@@ -448,9 +503,18 @@ function BookingPageContent() {
 
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Select Time</h3>
+              {selectedService && (
+                <div className="mb-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-sm text-blue-800">
+                  <p className="font-semibold text-gray-900">GlowGo Smart Slot Engine</p>
+                  <p className="mt-1 text-xs">
+                    {selectedService.name} needs {requiredMinutes} continuous minutes
+                    {bufferMinutes > 0 ? `, including ${bufferMinutes} minutes of prep and cleanup buffer.` : "."}
+                  </p>
+                </div>
+              )}
               {selectedDate && availableTimes.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
-                  No available slots on this date. Choose another day.
+                  {getServiceAvailabilityMessage(salonSlots, selectedDate, selectedService)}
                 </p>
               ) : (
                 <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
@@ -555,7 +619,10 @@ function BookingPageContent() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Duration</span>
-                    <span className="font-medium text-gray-900">{selectedService?.duration_minutes} min</span>
+                    <span className="font-medium text-gray-900">
+                      {selectedService?.duration_minutes} min
+                      {bufferMinutes > 0 ? ` + ${bufferMinutes} min buffer` : ""}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Date</span>
@@ -563,7 +630,10 @@ function BookingPageContent() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">Time</span>
-                    <span className="font-medium text-gray-900">{selectedTime && formatTime(selectedTime)}</span>
+                    <span className="font-medium text-gray-900">
+                      {selectedTime && formatTime(selectedTime)}
+                      {selectedTimeBlock ? `-${formatTime(selectedTimeBlock.end_time)}` : ""}
+                    </span>
                   </div>
                   {isHomeService && (
                     <div className="flex items-center justify-between text-sm">
@@ -577,6 +647,107 @@ function BookingPageContent() {
                 </div>
 
                 <Separator />
+
+                {selectedService && (selectedService.confirmation_required || selectedService.instant_booking_allowed === false) && (
+                  <div className="rounded-xl border border-amber-100 bg-amber-50/80 p-4 text-sm">
+                    <p className="font-semibold text-gray-900">Salon confirmation required</p>
+                    <p className="mt-1 text-xs text-amber-800">
+                      This service may need specialist staff or a longer continuous block. Your request stays pending until the salon confirms availability.
+                    </p>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-amber-100 bg-amber-50/80 p-4 text-sm">
+                  <p className="font-semibold text-gray-900">Late arrival policy</p>
+                  <p className="mt-1 text-xs text-amber-800">
+                    Please arrive within 10 minutes of your appointment. Arrivals after 20 minutes may require rescheduling to protect later bookings.
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] text-amber-800">
+                    <span className="rounded-lg bg-white/70 px-2 py-1">0-10 min grace</span>
+                    <span className="rounded-lg bg-white/70 px-2 py-1">10-20 may shorten</span>
+                    <span className="rounded-lg bg-white/70 px-2 py-1">20+ reschedule</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Group booking request</p>
+                      <p className="mt-1 text-xs text-blue-700">
+                        Request multiple people or extra services. The salon must confirm staff, duration, and slot capacity.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={isGroupRequest && groupRequestAllowed}
+                      onCheckedChange={setIsGroupRequest}
+                      disabled={!groupRequestAllowed}
+                    />
+                  </div>
+                  {!groupRequestAllowed && (
+                    <p className="mt-3 rounded-lg bg-white/80 px-3 py-2 text-xs text-blue-700">
+                      This service is configured for individual bookings only. Contact the salon for custom group coordination.
+                    </p>
+                  )}
+
+                  {isGroupRequest && groupRequestAllowed && (
+                    <div className="mt-4 space-y-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="party-size">Party size</Label>
+                          <Input
+                            id="party-size"
+                            inputMode="numeric"
+                            value={partySize}
+                            onChange={(e) => setPartySize(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                          />
+                          <p className="text-xs text-gray-500">2-20 people. Larger groups require manual coordination.</p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="group-note">Preferred details</Label>
+                          <Input
+                            id="group-note"
+                            placeholder="e.g. bridal party, split services"
+                            value={groupNote}
+                            onChange={(e) => setGroupNote(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Additional services requested</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {salonServices
+                            .filter((service) => service.id !== selectedServiceId)
+                            .slice(0, 8)
+                            .map((service) => {
+                              const checked = additionalServiceIds.includes(service.id)
+                              return (
+                                <button
+                                  key={service.id}
+                                  type="button"
+                                  onClick={() =>
+                                    setAdditionalServiceIds((current) =>
+                                      checked
+                                        ? current.filter((id) => id !== service.id)
+                                        : [...current, service.id]
+                                    )
+                                  }
+                                  className={cn(
+                                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                                    checked
+                                      ? "border-glowgo-pink bg-glowgo-pink text-white"
+                                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                                  )}
+                                >
+                                  {service.name}
+                                </button>
+                              )
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">

@@ -5,6 +5,7 @@ import type {
 } from '@/types'
 import { SALONS, SERVICES } from '@/data'
 import { getReviewsBySalon } from '@/lib/demo-reviews'
+import { getPublicSalons, isPublicSalon } from '@/lib/public-salons'
 import {
   computeSalonMetrics, computeTrustScoreBadge, computeResponseTimeBadge,
   getEffectivePriceWithOffers, getSalonOffers, getSalonServices,
@@ -218,7 +219,7 @@ export function buildSearchContext(query: string): {
 } {
   const intent = extractIntent(query)
 
-  let matches = SALONS.filter(salon => {
+  let matches = getPublicSalons(SALONS, SERVICES).filter(salon => {
     if (intent.area && salon.area.toLowerCase() !== intent.area.toLowerCase()) return false
     if (intent.gender && salon.gender !== intent.gender && salon.gender !== 'unisex') return false
     if (intent.is_luxury === true && salon.luxury_level !== 'luxury' && salon.luxury_level !== 'premium') return false
@@ -237,7 +238,7 @@ export function buildSearchContext(query: string): {
       )
       if (!hasMatching) return false
     }
-    return salon.status === 'approved' || salon.status === 'featured'
+    return true
   })
 
   matches = matches.sort((a, b) => {
@@ -323,7 +324,7 @@ function matchingServices(intent: AIIntent, services: Service[]): string {
 }
 
 export function findMatchingSalons(intent: AIIntent): Salon[] {
-  return SALONS.filter((salon) => {
+  return getPublicSalons(SALONS, SERVICES).filter((salon) => {
     if (intent.area && salon.area.toLowerCase() !== intent.area.toLowerCase()) return false
     if (intent.gender && salon.gender !== intent.gender && salon.gender !== 'unisex') return false
     if (intent.is_luxury === true && !(salon.luxury_level === 'luxury' || salon.luxury_level === 'premium')) return false
@@ -342,7 +343,7 @@ export function findMatchingSalons(intent: AIIntent): Salon[] {
       )
       if (!hasMatching) return false
     }
-    return salon.status === 'approved' || salon.status === 'featured'
+    return true
   })
 }
 
@@ -591,7 +592,7 @@ function filterSalonsByFilters(salons: Salon[], filters: Partial<SearchFilters>)
       )
       if (!matches) return false
     }
-    return salon.status === 'approved' || salon.status === 'featured'
+    return isPublicSalon(salon, SERVICES)
   })
 }
 
@@ -646,7 +647,7 @@ export function searchSalons(
   if (intent.area) mergedFilters.area = intent.area
   if (intent.gender) mergedFilters.gender = intent.gender
 
-  const baseSalons = SALONS.filter(s => s.status === 'approved' || s.status === 'featured')
+  const baseSalons = getPublicSalons(SALONS, SERVICES)
   let results = filterSalonsByFilters(baseSalons, mergedFilters)
 
   if (mergedFilters.sort_by) {
@@ -677,7 +678,7 @@ export function getPersonalizedRecommendations(userId: string): {
   topRated: Salon[]
   popular: Salon[]
 } {
-  const approved = SALONS.filter(s => s.status === 'approved' || s.status === 'featured')
+  const approved = getPublicSalons(SALONS, SERVICES)
   const sortedByTrust = [...approved].sort((a, b) => {
     const mA = computeSalonMetrics(a.id)
     const mB = computeSalonMetrics(b.id)

@@ -9,7 +9,7 @@ export default function PrivacyPage() {
         Back to GlowGo
       </Link>
       <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
-      <p className="mt-3 text-sm text-gray-500">Demo policy — updated June 22, 2026</p>
+      <p className="mt-3 text-sm text-gray-500">Demo policy - updated June 25, 2026</p>
       <div className="mt-8 space-y-6 text-sm leading-7 text-gray-600">
         <p>
           This hackathon demo stores account and preference information in the current browser and keeps some booking
@@ -22,6 +22,10 @@ export default function PrivacyPage() {
         <p>
           A production release will use secure authentication, a documented retention policy, encrypted transport,
           access controls, and user data-management workflows before accepting real customer information.
+        </p>
+        <p>
+          Document verification fields and demo upload names are for judging only. Production verification would require
+          secure object storage, server-side authorization, audit logs, retention limits, and administrator review.
         </p>
       </div>
     </div>

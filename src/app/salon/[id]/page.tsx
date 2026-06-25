@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import {
@@ -10,6 +10,7 @@ import {
   Share2,
   Clock,
   ChevronLeft,
+  ChevronRight,
   Sparkles,
   Home,
   Check,
@@ -42,8 +43,15 @@ import { useDemoFavorites } from "@/lib/demo-favorites"
 import { useDemoOffers } from "@/lib/demo-offers"
 import { createDemoReview } from "@/lib/demo-reviews"
 import { useDemoReviews } from "@/lib/use-demo-reviews"
-import { getBookableTimes, useDemoSlots } from "@/lib/demo-slots"
+import {
+  getServiceAvailabilityMessage,
+  getServiceAwareBookableTimes,
+  getServiceBufferMinutes,
+  getServiceRequiredMinutes,
+  useDemoSlots,
+} from "@/lib/demo-slots"
 import { ReviewForm } from "@/components/salon/review-form"
+import { isPublicSalon } from "@/lib/public-salons"
 import type { Service, Review, Offer, Salon } from "@/types"
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
@@ -72,9 +80,34 @@ const NEXT_7_DAYS = Array.from({ length: 7 }, (_, i) => {
 })
 
 const DEMO_CURRENT_DATE = "2026-06-22"
+const SALON_IMAGE_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80"
 
 function getServicePrice(service: Service) {
   return service.final_price || service.discounted_price || service.price
+}
+
+function SafeImage({
+  src,
+  fallback = SALON_IMAGE_FALLBACK,
+  alt,
+  className,
+}: {
+  src?: string
+  fallback?: string
+  alt: string
+  className?: string
+}) {
+  const [failed, setFailed] = useState(false)
+  const resolvedSrc = !failed && src ? src : fallback
+
+  return (
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      className={className}
+      onError={() => setFailed(true)}
+    />
+  )
 }
 
 export default function SalonDetailPage() {
@@ -92,6 +125,22 @@ export default function SalonDetailPage() {
           <p className="text-gray-500 mb-4">The salon you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/explore">
             <Button>Browse Salons</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isPublicSalon(salon, salonServices)) {
+    return (
+      <div className="pt-16 min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Salon Pending Verification</h1>
+          <p className="text-gray-500 mb-4">
+            This salon is still being verified or is not publicly available yet. Verified salons remain available in Explore.
+          </p>
+          <Link href="/explore">
+            <Button>Browse Verified Salons</Button>
           </Link>
         </div>
       </div>
@@ -138,7 +187,8 @@ function SalonDetailContent({
       ...(salon.images || []),
       ...(salon.gallery || []),
     ].filter(Boolean) as string[]
-    return list.length > 0 ? list : ["https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80"]
+    const unique = Array.from(new Set(list.map((img) => img.trim()).filter(Boolean)))
+    return unique.length > 0 ? unique : [SALON_IMAGE_FALLBACK]
   }, [salon])
 
   const serviceCategories = useMemo(() => {
@@ -174,8 +224,15 @@ function SalonDetailContent({
     router.push(`/booking/${salon.id}?service=${service.id}`)
   }
 
+  const showSection = (tab: string, sectionId: string) => {
+    setActiveTab(tab)
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 0)
+  }
+
   return (
-    <div className="pt-16">
+    <div className="pt-16 pb-24 lg:pb-0">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
         <Link
           href="/explore"
@@ -191,7 +248,13 @@ function SalonDetailContent({
           <div className="lg:col-span-2 space-y-8">
             <GallerySection images={allImages} selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
 
-            <SalonInfoSection salon={salon} ratingAvg={liveRatingAvg} reviewCount={currentReviews.length || salon.review_count} />
+            <SalonInfoSection
+              salon={salon}
+              ratingAvg={liveRatingAvg}
+              reviewCount={currentReviews.length || salon.review_count}
+              onShowReviews={() => showSection("reviews", "salon-reviews")}
+              onShowLocation={() => showSection("about", "salon-location")}
+            />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full bg-gray-100/80 rounded-xl p-1 h-auto">
@@ -274,11 +337,24 @@ function GallerySection({
   setSelectedImage: (i: number) => void
 }) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const goToImage = (delta: number) => {
+    setSelectedImage((selectedImage + delta + images.length) % images.length)
+  }
+
+  useEffect(() => {
+    if (!dialogOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") setSelectedImage((selectedImage - 1 + images.length) % images.length)
+      if (event.key === "ArrowRight") setSelectedImage((selectedImage + 1) % images.length)
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [dialogOpen, images.length, selectedImage, setSelectedImage])
 
   return (
     <div className="space-y-3">
       <div className="relative aspect-[16/9] sm:aspect-[2/1] rounded-2xl overflow-hidden bg-gray-100">
-        <img
+        <SafeImage
           src={images[selectedImage] || images[0]}
           alt="Salon"
           className="w-full h-full object-cover"
@@ -293,11 +369,31 @@ function GallerySection({
               <DialogTitle>Salon Gallery</DialogTitle>
             </DialogHeader>
             <div className="relative">
-              <img
+              <SafeImage
                 src={images[selectedImage] || images[0]}
                 alt="Salon gallery"
                 className="w-full h-[70vh] object-contain"
               />
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => goToImage(-1)}
+                    className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+                    aria-label="Previous gallery image"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToImage(1)}
+                    className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+                    aria-label="Next gallery image"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                 {images.map((img, i) => (
                   <button
@@ -308,7 +404,7 @@ function GallerySection({
                       i === selectedImage ? "border-white opacity-100" : "border-transparent opacity-60 hover:opacity-80"
                     )}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <SafeImage src={img} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -327,7 +423,7 @@ function GallerySection({
               i === selectedImage ? "border-glowgo-pink ring-1 ring-glowgo-pink" : "border-gray-200 hover:border-gray-300"
             )}
           >
-            <img src={img} alt="" className="w-full h-full object-cover" />
+            <SafeImage src={img} alt="" className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
@@ -339,10 +435,14 @@ function SalonInfoSection({
   salon,
   ratingAvg,
   reviewCount,
+  onShowReviews,
+  onShowLocation,
 }: {
   salon: Salon
   ratingAvg: number
   reviewCount: number
+  onShowReviews: () => void
+  onShowLocation: () => void
 }) {
   const router = useRouter()
   const { user } = useAuth()
@@ -384,9 +484,17 @@ function SalonInfoSection({
         setShareStatus("Link copied")
       }
     } catch {
-      setShareStatus("")
+      try {
+        if (!navigator.clipboard) throw new Error("Clipboard unavailable")
+        await navigator.clipboard.writeText(shareData.url)
+        setShareStatus("Link copied")
+      } catch {
+        setShareStatus("Copy unavailable")
+      }
     }
   }
+
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${salon.name} ${salon.address} ${salon.area} ${salon.city}`)}`
 
   return (
     <div>
@@ -431,16 +539,26 @@ function SalonInfoSection({
       </div>
 
       <div className="flex flex-wrap items-center gap-4 mt-4">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-yellow-50">
+        <button
+          type="button"
+          onClick={onShowReviews}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-yellow-50 transition-colors hover:bg-yellow-100 cursor-pointer"
+          aria-label="Jump to salon reviews"
+        >
           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
           <span className="font-semibold text-gray-900">{ratingAvg.toFixed(1)}</span>
           <span className="text-gray-400 text-sm">({reviewCount})</span>
-        </div>
+        </button>
 
-        <div className="flex items-center gap-1 text-sm text-gray-500">
+        <button
+          type="button"
+          onClick={onShowLocation}
+          className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 cursor-pointer"
+          aria-label="Jump to salon location"
+        >
           <MapPin className="w-4 h-4 text-glowgo-pink" />
           {salon.area}, {salon.city}
-        </div>
+        </button>
 
         <div className="flex items-center gap-1 text-sm text-gray-500">
           <Clock className="w-4 h-4 text-glowgo-pink" />
@@ -475,6 +593,40 @@ function SalonInfoSection({
             Home Service
           </Badge>
         )}
+      </div>
+
+      <div className="mt-5 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Contact {salon.name}</p>
+            <p className="text-xs text-gray-500">Use demo contact actions or open the address in Google Maps.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={`tel:${salon.phone}`}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition-all hover:border-gray-300"
+            >
+              <Phone className="h-4 w-4 text-glowgo-pink" />
+              Call
+            </a>
+            <a
+              href={`mailto:${salon.email}`}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition-all hover:border-gray-300"
+            >
+              <Mail className="h-4 w-4 text-glowgo-pink" />
+              Email
+            </a>
+            <a
+              href={mapsHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm text-white transition-all hover:bg-gray-800"
+            >
+              <MapPin className="h-4 w-4" />
+              Open Maps
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -570,6 +722,8 @@ function ServicesTab({
 }
 
 function AboutTab({ salon }: { salon: Salon }) {
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${salon.name} ${salon.address} ${salon.area} ${salon.city}`)}`
+
   return (
     <div className="space-y-6">
       <Card className="bg-gradient-to-br from-glowgo-pink/5 to-glowgo-lavender/5 border-glowgo-pink/10">
@@ -603,31 +757,26 @@ function AboutTab({ salon }: { salon: Salon }) {
 
       <Separator />
 
-      <div>
+      <div id="salon-location" className="scroll-mt-24">
         <h3 className="font-semibold text-gray-900 mb-3">Location</h3>
-        <div className="aspect-[16/9] rounded-xl bg-gray-100 flex items-center justify-center">
-          <div className="text-center">
+        <div className="aspect-[16/9] rounded-xl bg-gray-100 flex items-center justify-center border border-dashed border-gray-200">
+          <div className="max-w-md px-4 text-center">
             <MapPin className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">{salon.address}</p>
+            <p className="text-sm font-medium text-gray-700">{salon.address}</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Live embedded maps are not connected in this demo.
+            </p>
+            <a
+              href={mapsHref}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm text-white transition-colors hover:bg-gray-800"
+            >
+              <MapPin className="h-4 w-4" />
+              Open in Google Maps
+            </a>
           </div>
         </div>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <a
-          href={`tel:${salon.phone}`}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-gray-300 transition-all"
-        >
-          <Phone className="w-4 h-4 text-glowgo-pink" />
-          Call
-        </a>
-        <a
-          href={`mailto:${salon.email}`}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:border-gray-300 transition-all"
-        >
-          <Mail className="w-4 h-4 text-glowgo-pink" />
-          Email
-        </a>
       </div>
     </div>
   )
@@ -682,7 +831,7 @@ function ReviewsTab({
   }
 
   return (
-    <div className="space-y-6">
+    <div id="salon-reviews" className="space-y-6 scroll-mt-24">
       <Card>
         <CardContent className="p-5">
           <div className="flex items-center gap-6">
@@ -894,14 +1043,12 @@ function BookingPanel({
   const [showAllServices, setShowAllServices] = useState(false)
   const { slots: salonSlots } = useDemoSlots(salon.id)
   const visibleServices = showAllServices ? services : services.slice(0, 6)
-  const availableTimes = useMemo(
-    () =>
-      getBookableTimes(
-        salonSlots,
-        selectedDate,
-        selectedService?.id
-      ),
-    [salonSlots, selectedDate, selectedService?.id]
+  const requiredMinutes = getServiceRequiredMinutes(selectedService)
+  const bufferMinutes = getServiceBufferMinutes(selectedService)
+  const availableTimes = getServiceAwareBookableTimes(
+    salonSlots,
+    selectedDate,
+    selectedService
   )
   const effectiveSelectedTime = availableTimes.includes(selectedTime)
     ? selectedTime
@@ -912,7 +1059,7 @@ function BookingPanel({
 
   return (
     <>
-      <div className="hidden lg:block sticky top-24">
+      <div className="hidden lg:block">
         <Card className="border-gray-100 shadow-lg">
           <CardContent className="p-5 space-y-5">
             <div>
@@ -932,7 +1079,12 @@ function BookingPanel({
                         : "border-gray-100 text-gray-700 hover:border-gray-200"
                     )}
                   >
-                    <span className="truncate">{service.name}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{service.name}</span>
+                      <span className="block truncate text-[11px] text-gray-400">
+                        {service.category} · {getServiceRequiredMinutes(service)} min block
+                      </span>
+                    </span>
                     <span className="font-semibold shrink-0 ml-2">{formatPrice(getServicePrice(service))}</span>
                   </button>
                 ))}
@@ -954,6 +1106,10 @@ function BookingPanel({
                   <div>
                     <p className="text-xs text-gray-500">Selected Service</p>
                     <p className="text-sm font-semibold text-gray-900">{selectedService.name}</p>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      {requiredMinutes} min continuous block
+                      {bufferMinutes > 0 ? ` including ${bufferMinutes} min buffer` : ""}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-glowgo-pink">{formatPrice(getServicePrice(selectedService))}</p>
@@ -972,10 +1128,10 @@ function BookingPanel({
                   <button
                     key={d.date}
                     disabled={
-                      getBookableTimes(
+                      getServiceAwareBookableTimes(
                         salonSlots,
                         d.date,
-                        selectedService?.id
+                        selectedService
                       ).length === 0
                     }
                     onClick={() => {
@@ -987,10 +1143,10 @@ function BookingPanel({
                       selectedDate === d.date
                         ? "border-glowgo-pink bg-glowgo-pink/10 text-glowgo-pink"
                         : "border-gray-200 text-gray-500 hover:border-gray-300",
-                      getBookableTimes(
+                      getServiceAwareBookableTimes(
                         salonSlots,
                         d.date,
-                        selectedService?.id
+                        selectedService
                       ).length === 0 &&
                         "cursor-not-allowed opacity-40"
                     )}
@@ -1004,9 +1160,14 @@ function BookingPanel({
 
             <div>
               <h3 className="font-semibold text-gray-900 text-sm mb-2">Select Time</h3>
+              {selectedService && (
+                <p className="mb-2 rounded-lg border border-blue-100 bg-blue-50/70 p-2 text-[11px] text-blue-800">
+                  Smart scheduling checks {requiredMinutes} continuous minutes before showing a time.
+                </p>
+              )}
               {availableTimes.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-gray-200 p-3 text-xs text-gray-500">
-                  No available slots on this date.
+                  {getServiceAvailabilityMessage(salonSlots, selectedDate, selectedService)}
                 </p>
               ) : (
                 <div className="grid grid-cols-3 gap-1.5 max-h-32 overflow-y-auto">
@@ -1088,7 +1249,7 @@ function AIRecommendationSection({ salon }: { salon: Salon }) {
           <Button
             variant="outline"
             size="sm"
-            className="mt-4 border-white/20 text-white hover:bg-white/10 text-xs"
+            className="mt-4 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white text-xs"
           >
             Ask Glow AI
             <ArrowRight className="w-3 h-3 ml-1" />

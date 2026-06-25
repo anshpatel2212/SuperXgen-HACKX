@@ -7,6 +7,7 @@ import { getOwnerSalons, recomputeSalonMetrics } from "@/lib/data-service"
 import { useDemoSlots } from "@/lib/demo-slots"
 import { toDateInputValue } from "@/lib/utils"
 import type { Salon } from "@/types"
+import { SERVICES } from "@/data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,6 +23,27 @@ const EMPTY_SLOT_FORM = {
   capacity: "1",
 }
 
+const WEEKDAY_OPTIONS = [
+  { key: "monday", label: "Mon", dateDay: 1 },
+  { key: "tuesday", label: "Tue", dateDay: 2 },
+  { key: "wednesday", label: "Wed", dateDay: 3 },
+  { key: "thursday", label: "Thu", dateDay: 4 },
+  { key: "friday", label: "Fri", dateDay: 5 },
+  { key: "saturday", label: "Sat", dateDay: 6 },
+  { key: "sunday", label: "Sun", dateDay: 0 },
+] as const
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number)
+  return hours * 60 + minutes
+}
+
+function minutesToTime(value: number) {
+  const hours = Math.floor(value / 60)
+  const minutes = value % 60
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`
+}
+
 export default function OwnerSlotsPage() {
   const { user, isLoading } = useAuth()
   const salons: Salon[] = user?.role === "owner" ? getOwnerSalons(user.id) : []
@@ -34,6 +56,15 @@ export default function OwnerSlotsPage() {
   const [formData, setFormData] = useState(EMPTY_SLOT_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState("")
+  const [showRecurringForm, setShowRecurringForm] = useState(false)
+  const [recurringDays, setRecurringDays] = useState<string[]>(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"])
+  const [recurringWeeks, setRecurringWeeks] = useState("2")
+  const [recurringStart, setRecurringStart] = useState("10:00")
+  const [recurringEnd, setRecurringEnd] = useState("18:00")
+  const [recurringDuration, setRecurringDuration] = useState("60")
+  const [recurringCapacity, setRecurringCapacity] = useState("1")
+  const [recurringServiceId, setRecurringServiceId] = useState("all")
+  const [bulkSummary, setBulkSummary] = useState("")
 
   if (isLoading) return null
   if (!user) redirect("/login")
@@ -55,6 +86,8 @@ export default function OwnerSlotsPage() {
   }
 
   const weekDays = getWeekDays()
+  const selectedSalon = salons.find((salon) => salon.id === selectedSalonId) || null
+  const salonServices = SERVICES.filter((service) => service.salon_id === selectedSalonId && service.active)
 
   const getSlotsForDate = (date: string) => {
     return slots.filter(s => s.slot_date === date)
@@ -75,6 +108,7 @@ export default function OwnerSlotsPage() {
     })
     setFormError("")
     setShowAddForm(true)
+    setShowRecurringForm(false)
   }
 
   const openEditForm = (slotId: string) => {
@@ -197,6 +231,99 @@ export default function OwnerSlotsPage() {
     recomputeSalonMetrics(selectedSalonId)
   }
 
+  const toggleRecurringDay = (day: string) => {
+    setRecurringDays((current) =>
+      current.includes(day)
+        ? current.filter((item) => item !== day)
+        : [...current, day]
+    )
+  }
+
+  const handleCreateRecurringSlots = () => {
+    setFormError("")
+    setBulkSummary("")
+    if (!selectedSalonId) {
+      setFormError("Select a salon before creating recurring slots.")
+      return
+    }
+    if (recurringDays.length === 0) {
+      setFormError("Select at least one day of the week.")
+      return
+    }
+
+    const weeks = Number(recurringWeeks)
+    const duration = Number(recurringDuration)
+    const capacity = Number(recurringCapacity)
+    const startMinutes = timeToMinutes(recurringStart)
+    const endMinutes = timeToMinutes(recurringEnd)
+
+    if (![1, 2, 4].includes(weeks)) {
+      setFormError("Choose a valid date range.")
+      return
+    }
+    if (!Number.isInteger(duration) || duration < 15 || duration > 240) {
+      setFormError("Slot duration must be between 15 and 240 minutes.")
+      return
+    }
+    if (startMinutes >= endMinutes || startMinutes + duration > endMinutes) {
+      setFormError("End time must allow at least one full slot.")
+      return
+    }
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 50) {
+      setFormError("Capacity must be a whole number between 1 and 50.")
+      return
+    }
+    if (recurringServiceId !== "all" && !salonServices.some((service) => service.id === recurringServiceId)) {
+      setFormError("Choose a valid service scope.")
+      return
+    }
+
+    const weeklyOff = new Set(selectedSalon?.weekly_off || [])
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    let created = 0
+    let skipped = 0
+    const serviceId = recurringServiceId === "all" ? null : recurringServiceId
+
+    for (let offset = 0; offset < weeks * 7; offset += 1) {
+      const current = new Date(today)
+      current.setDate(today.getDate() + offset)
+      const day = WEEKDAY_OPTIONS.find((item) => item.dateDay === current.getDay())
+      if (!day || !recurringDays.includes(day.key) || weeklyOff.has(day.key)) continue
+
+      const slotDate = toDateInputValue(current)
+      for (let start = startMinutes; start + duration <= endMinutes; start += duration) {
+        const startTime = minutesToTime(start)
+        const endTime = minutesToTime(start + duration)
+        const duplicate = slots.some(
+          (slot) =>
+            slot.salon_id === selectedSalonId &&
+            slot.service_id === serviceId &&
+            slot.slot_date === slotDate &&
+            slot.start_time.slice(0, 5) === startTime &&
+            slot.end_time.slice(0, 5) === endTime
+        )
+        if (duplicate) {
+          skipped += 1
+          continue
+        }
+        createSlot({
+          salon_id: selectedSalonId,
+          service_id: serviceId,
+          slot_date: slotDate,
+          start_time: startTime,
+          end_time: endTime,
+          capacity,
+        })
+        created += 1
+      }
+    }
+
+    recomputeSalonMetrics(selectedSalonId)
+    setBulkSummary(`Created ${created} slots, skipped ${skipped} duplicate${skipped === 1 ? "" : "s"}.`)
+    setShowRecurringForm(false)
+  }
+
   const totalCapacity = slots.reduce((sum, s) => sum + s.capacity, 0)
   const totalBooked = slots.reduce((sum, s) => sum + s.booked_count, 0)
 
@@ -226,8 +353,39 @@ export default function OwnerSlotsPage() {
           >
             <Plus className="w-4 h-4" /> Add Slots
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowRecurringForm((open) => !open)
+              setShowAddForm(false)
+              setFormError("")
+            }}
+            disabled={!selectedSalonId}
+            className="gap-2"
+          >
+            <CalendarDays className="w-4 h-4" /> Add Recurring
+          </Button>
         </div>
       </div>
+
+      <Card className="border-blue-100 bg-blue-50/70">
+        <CardContent className="p-4">
+          <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">GlowGo Salon Autopilot</p>
+              <p className="mt-1 text-sm text-blue-800">
+                Availability is treated as a working window, not a fixed one-hour booking. Customer times are shown only when the selected service duration and prep/cleanup buffer can fit into continuous capacity.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-blue-900 sm:grid-cols-4 lg:grid-cols-2">
+              <span className="rounded-lg bg-white/80 px-3 py-2">Staff count comes from salon profile</span>
+              <span className="rounded-lg bg-white/80 px-3 py-2">Slot capacity limits parallel bookings</span>
+              <span className="rounded-lg bg-white/80 px-3 py-2">Services define duration and buffers</span>
+              <span className="rounded-lg bg-white/80 px-3 py-2">Group bookings require confirmation</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -319,8 +477,107 @@ export default function OwnerSlotsPage() {
         </Card>
       )}
 
+      {showRecurringForm && (
+        <Card className="border-purple-200 bg-purple-50">
+          <CardContent className="space-y-4 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold">Add recurring slots</h2>
+                <p className="text-xs text-gray-500">Creates future availability and skips exact duplicates.</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowRecurringForm(false)}>Close</Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-medium">Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {WEEKDAY_OPTIONS.map((day) => {
+                    const disabled = selectedSalon?.weekly_off?.includes(day.key)
+                    const selected = recurringDays.includes(day.key)
+                    return (
+                      <button
+                        key={day.key}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => toggleRecurringDay(day.key)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                          selected
+                            ? "border-purple-500 bg-purple-600 text-white"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                        } disabled:cursor-not-allowed disabled:opacity-40`}
+                        title={disabled ? "Weekly off day" : undefined}
+                      >
+                        {day.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Range</label>
+                <select
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  value={recurringWeeks}
+                  onChange={(e) => setRecurringWeeks(e.target.value)}
+                >
+                  <option value="1">1 week</option>
+                  <option value="2">2 weeks</option>
+                  <option value="4">4 weeks</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Service scope</label>
+                <select
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  value={recurringServiceId}
+                  onChange={(e) => setRecurringServiceId(e.target.value)}
+                >
+                  <option value="all">All services</option>
+                  {salonServices.map((service) => (
+                    <option key={service.id} value={service.id}>{service.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Start</label>
+                <Input type="time" value={recurringStart} onChange={(e) => setRecurringStart(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">End</label>
+                <Input type="time" value={recurringEnd} onChange={(e) => setRecurringEnd(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Slot duration</label>
+                <Input
+                  inputMode="numeric"
+                  value={recurringDuration}
+                  onChange={(e) => setRecurringDuration(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Capacity</label>
+                <Input
+                  inputMode="numeric"
+                  value={recurringCapacity}
+                  onChange={(e) => setRecurringCapacity(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleCreateRecurringSlots} className="bg-purple-600 hover:bg-purple-700">
+                Create recurring slots
+              </Button>
+              <p className="text-xs text-gray-500">Weekly off days are excluded automatically.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {!showAddForm && formError && (
         <p className="text-sm text-red-600" role="alert">{formError}</p>
+      )}
+      {bulkSummary && (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{bulkSummary}</p>
       )}
 
       {/* Week Navigator */}

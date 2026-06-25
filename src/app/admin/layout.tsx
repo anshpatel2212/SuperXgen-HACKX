@@ -100,7 +100,7 @@ export default function AdminLayout({
           </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+          <main className="flex-1 px-4 pb-4 pt-4 md:px-6 md:pb-6">{children}</main>
         </div>
       </div>
     </RoleGuard>
