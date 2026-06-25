@@ -314,6 +314,8 @@ CREATE INDEX idx_salon_metrics_trust ON salon_metrics(trust_score DESC);
 -- Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE beauty_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE salons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability_slots ENABLE ROW LEVEL SECURITY;
@@ -325,60 +327,82 @@ ALTER TABLE ai_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE salon_metrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE platform_metrics ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies (simplified - enhance in production)
+ALTER TABLE users FORCE ROW LEVEL SECURITY;
+ALTER TABLE beauty_profiles FORCE ROW LEVEL SECURITY;
+ALTER TABLE categories FORCE ROW LEVEL SECURITY;
+ALTER TABLE cities FORCE ROW LEVEL SECURITY;
+ALTER TABLE salons FORCE ROW LEVEL SECURITY;
+ALTER TABLE services FORCE ROW LEVEL SECURITY;
+ALTER TABLE availability_slots FORCE ROW LEVEL SECURITY;
+ALTER TABLE bookings FORCE ROW LEVEL SECURITY;
+ALTER TABLE reviews FORCE ROW LEVEL SECURITY;
+ALTER TABLE favorites FORCE ROW LEVEL SECURITY;
+ALTER TABLE offers FORCE ROW LEVEL SECURITY;
+ALTER TABLE ai_conversations FORCE ROW LEVEL SECURITY;
+ALTER TABLE salon_metrics FORCE ROW LEVEL SECURITY;
+ALTER TABLE platform_metrics FORCE ROW LEVEL SECURITY;
+
+-- RLS Policies
+
+-- Public catalog tables
+CREATE POLICY "Categories public read" ON categories
+  FOR SELECT USING (true);
+
+CREATE POLICY "Cities public read active" ON cities
+  FOR SELECT USING (is_active = true);
 
 -- Users: can read own profile
 CREATE POLICY "Users read own profile" ON users
-  FOR SELECT USING (auth.uid() = id);
+  FOR SELECT USING ((select auth.uid()) = id);
 
 -- Salons: public can read approved; owners can read own; admins can read all
 CREATE POLICY "Salons public read approved" ON salons
   FOR SELECT USING (status IN ('approved', 'featured'));
 CREATE POLICY "Salons owners read own" ON salons
-  FOR SELECT USING (auth.uid() = owner_id);
+  FOR SELECT USING ((select auth.uid()) = owner_id);
 CREATE POLICY "Salons admin all" ON salons
-  FOR ALL USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
+  FOR ALL USING (EXISTS (SELECT 1 FROM users WHERE id = (select auth.uid()) AND role = 'admin'));
 CREATE POLICY "Salons owner insert" ON salons
-  FOR INSERT WITH CHECK (auth.uid() = owner_id);
+  FOR INSERT WITH CHECK ((select auth.uid()) = owner_id);
 CREATE POLICY "Salons owner update" ON salons
-  FOR UPDATE USING (auth.uid() = owner_id);
+  FOR UPDATE USING ((select auth.uid()) = owner_id);
 
 -- Services: public read active; owners manage own
 CREATE POLICY "Services public read" ON services
   FOR SELECT USING (true);
 CREATE POLICY "Services owner manage" ON services
   FOR ALL USING (EXISTS (
-    SELECT 1 FROM salons WHERE salons.id = services.salon_id AND salons.owner_id = auth.uid()
+    SELECT 1 FROM salons WHERE salons.id = services.salon_id AND salons.owner_id = (select auth.uid())
   ));
 
 -- Bookings: users see own; owners see bookings for their salons; admins see all
 CREATE POLICY "Bookings user own" ON bookings
-  FOR SELECT USING (auth.uid() = user_id);
+  FOR SELECT USING ((select auth.uid()) = user_id);
 CREATE POLICY "Bookings salon owner" ON bookings
   FOR SELECT USING (EXISTS (
-    SELECT 1 FROM salons WHERE salons.id = bookings.salon_id AND salons.owner_id = auth.uid()
+    SELECT 1 FROM salons WHERE salons.id = bookings.salon_id AND salons.owner_id = (select auth.uid())
   ));
 CREATE POLICY "Bookings user create" ON bookings
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
 CREATE POLICY "Bookings admin all" ON bookings
-  FOR ALL USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
+  FOR ALL USING (EXISTS (SELECT 1 FROM users WHERE id = (select auth.uid()) AND role = 'admin'));
 
 -- Reviews: public read; authenticated users create
 CREATE POLICY "Reviews public read" ON reviews
   FOR SELECT USING (true);
 CREATE POLICY "Reviews user create" ON reviews
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
 
 -- Favorites: user own
 CREATE POLICY "Favorites user own" ON favorites
-  FOR ALL USING (auth.uid() = user_id);
+  FOR ALL USING ((select auth.uid()) = user_id);
 
 -- Offers: public read active
 CREATE POLICY "Offers public read" ON offers
   FOR SELECT USING (is_active = true);
 CREATE POLICY "Offers owner manage" ON offers
   FOR ALL USING (EXISTS (
-    SELECT 1 FROM salons WHERE salons.id = offers.salon_id AND salons.owner_id = auth.uid()
+    SELECT 1 FROM salons WHERE salons.id = offers.salon_id AND salons.owner_id = (select auth.uid())
   ));
 
 -- Availability: public read; owners manage
@@ -386,12 +410,12 @@ CREATE POLICY "Availability public read" ON availability_slots
   FOR SELECT USING (true);
 CREATE POLICY "Availability owner manage" ON availability_slots
   FOR ALL USING (EXISTS (
-    SELECT 1 FROM salons WHERE salons.id = availability_slots.salon_id AND salons.owner_id = auth.uid()
+    SELECT 1 FROM salons WHERE salons.id = availability_slots.salon_id AND salons.owner_id = (select auth.uid())
   ));
 
 -- AI conversations: user own
 CREATE POLICY "AI conversations user own" ON ai_conversations
-  FOR ALL USING (auth.uid() = user_id);
+  FOR ALL USING ((select auth.uid()) = user_id);
 
 -- Salon metrics: public read
 CREATE POLICY "Salon metrics public read" ON salon_metrics
@@ -399,4 +423,4 @@ CREATE POLICY "Salon metrics public read" ON salon_metrics
 
 -- Platform metrics: admin only
 CREATE POLICY "Platform metrics admin" ON platform_metrics
-  FOR ALL USING (EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'));
+  FOR ALL USING (EXISTS (SELECT 1 FROM users WHERE id = (select auth.uid()) AND role = 'admin'));
