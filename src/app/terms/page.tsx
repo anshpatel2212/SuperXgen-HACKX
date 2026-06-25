@@ -9,7 +9,7 @@ export default function TermsPage() {
         Back to GlowGo
       </Link>
       <h1 className="text-3xl font-bold text-gray-900">Terms of Service</h1>
-      <p className="mt-3 text-sm text-gray-500">Demo policy — updated June 22, 2026</p>
+      <p className="mt-3 text-sm text-gray-500">Demo policy - updated June 25, 2026</p>
       <div className="mt-8 space-y-6 text-sm leading-7 text-gray-600">
         <p>
           GlowGo Mumbai is currently a hackathon demonstration. Salon listings, availability, bookings, payments,
@@ -22,6 +22,10 @@ export default function TermsPage() {
         <p>
           Users must provide accurate information and use the platform lawfully. Unsupported, abusive, or fraudulent
           activity may be removed from a future production service.
+        </p>
+        <p>
+          Salon listing approval requires business, identity, address, registration, and compliance review. This demo
+          captures verification fields locally and does not upload or securely store real documents.
         </p>
       </div>
     </div>

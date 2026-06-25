@@ -208,7 +208,7 @@ export default function OwnerAIHelperPage() {
                 <li>• The more details you provide, the better the AI output</li>
                 <li>• You can copy and edit any generated content before saving</li>
                 <li>• Use the SEO title tag to improve your salon&apos;s search ranking</li>
-                <li>• Visit the Insights page for AI-driven suggestions to grow your business</li>
+                <li>• Visit the Insights page for rule-based demo suggestions to grow your business</li>
               </ul>
             </div>
           </div>

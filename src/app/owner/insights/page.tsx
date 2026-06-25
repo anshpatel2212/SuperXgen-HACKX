@@ -99,9 +99,9 @@ export default function OwnerInsightsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Lightbulb className="w-6 h-6 text-yellow-500" /> AI Insights
+            <Lightbulb className="w-6 h-6 text-yellow-500" /> Demo Insights
           </h1>
-          <p className="text-gray-500 text-sm">AI-driven analysis and recommendations for your business</p>
+          <p className="text-gray-500 text-sm">Rule-based recommendations from your local demo bookings, reviews, services, and slots</p>
         </div>
         <Button variant="outline" onClick={() => setRefreshKey((key) => key + 1)} className="gap-2">
           <RefreshCw className="w-4 h-4" /> Refresh
@@ -168,7 +168,7 @@ export default function OwnerInsightsPage() {
             </Card>
           </div>
 
-          {/* AI Advice */}
+          {/* Rule-based advice */}
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="bg-gradient-to-br from-pink-50 to-white">
               <CardHeader className="pb-3">
@@ -224,7 +224,7 @@ export default function OwnerInsightsPage() {
         <div className="text-center py-16 text-gray-500">
           <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No insights available yet</p>
-          <p className="text-sm">Create a salon and get some bookings to see AI-powered insights.</p>
+          <p className="text-sm">Create a salon and get some bookings to see rule-based demo insights.</p>
         </div>
       )}
     </div>

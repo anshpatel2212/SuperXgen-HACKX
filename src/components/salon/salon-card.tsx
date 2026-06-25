@@ -20,6 +20,8 @@ interface SalonCardProps {
   variant?: "default" | "compact"
 }
 
+const SALON_IMAGE_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80"
+
 export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
   const router = useRouter()
   const { user } = useAuth()
@@ -41,6 +43,7 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
   const minPrice = metrics.min_price
   const maxPrice = metrics.max_price
   const hasResponseData = Boolean(metrics.avg_response_time_minutes)
+  const coverImage = salon.cover_url || salon.cover_image || SALON_IMAGE_FALLBACK
 
   const handleFavorite = () => {
     if (!user) {
@@ -54,13 +57,13 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
   return (
     <Card
       className={cn(
-        "group/card overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-gray-100",
+        "group/card flex h-full flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-gray-100",
         variant === "compact" && ""
       )}
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <img
-          src={imgError ? "https://picsum.photos/seed/default/400/300" : salon.cover_url}
+          src={imgError ? SALON_IMAGE_FALLBACK : coverImage}
           alt={salon.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-110"
           onError={() => setImgError(true)}
@@ -113,7 +116,7 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
         </div>
       </div>
 
-      <CardContent className="p-4">
+      <CardContent className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <Link href={`/salon/${salon.id}`}>
@@ -145,7 +148,7 @@ export function SalonCard({ salon, variant = "default" }: SalonCardProps) {
           </span>
         </div>
 
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+        <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
           <div className="flex items-center gap-2">
             <Badge
               variant="secondary"

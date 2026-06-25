@@ -34,6 +34,7 @@ export function createSalon(data: {
   name: string
   area: string
   city: string
+  pincode?: string
   phone?: string
   email?: string
   description?: string
@@ -69,7 +70,7 @@ export function createSalon(data: {
     address: data.address || "",
     area: data.area,
     city: data.city || "Mumbai",
-    pincode: "",
+    pincode: data.pincode || "",
     latitude: data.latitude || 0,
     longitude: data.longitude || 0,
     gender: data.gender || "unisex",
@@ -128,6 +129,13 @@ export function createService(data: {
   category: string
   price: number
   duration_minutes: number
+  buffer_before_minutes?: number
+  buffer_after_minutes?: number
+  required_staff_count?: number
+  required_resource_type?: string
+  instant_booking_allowed?: boolean
+  group_booking_allowed?: boolean
+  confirmation_required?: boolean
   discount_percent?: number
   description?: string
   gender?: Gender
@@ -147,6 +155,13 @@ export function createService(data: {
     ai_description: "",
     category: data.category,
     duration_minutes: data.duration_minutes || 30,
+    buffer_before_minutes: Math.max(0, data.buffer_before_minutes || 0),
+    buffer_after_minutes: Math.max(0, data.buffer_after_minutes || 0),
+    required_staff_count: Math.max(1, data.required_staff_count || 1),
+    required_resource_type: data.required_resource_type || "General chair",
+    instant_booking_allowed: data.instant_booking_allowed !== false,
+    group_booking_allowed: data.group_booking_allowed !== false,
+    confirmation_required: data.confirmation_required || false,
     price: price,
     discount_percent: discountPercent,
     discounted_price: discountPercent > 0 ? finalPrice : 0,

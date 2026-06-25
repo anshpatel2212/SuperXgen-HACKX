@@ -135,6 +135,13 @@ export interface Service {
   ai_description: string
   category: string
   duration_minutes: number
+  buffer_before_minutes?: number
+  buffer_after_minutes?: number
+  required_staff_count?: number
+  required_resource_type?: string
+  instant_booking_allowed?: boolean
+  group_booking_allowed?: boolean
+  confirmation_required?: boolean
   price: number
   discount_percent: number
   discounted_price: number

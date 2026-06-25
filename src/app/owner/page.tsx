@@ -316,7 +316,7 @@ export default function OwnerDashboardPage() {
             </Link>
             <Link href="/owner/insights">
               <Button variant="outline" className="w-full justify-start gap-2">
-                <Lightbulb className="w-4 h-4" /> AI Business Insights
+                <Lightbulb className="w-4 h-4" /> Demo Business Insights
               </Button>
             </Link>
           </CardContent>

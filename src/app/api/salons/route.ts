@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SALONS, SERVICES, OFFERS } from '@/data'
+import { SALONS, SERVICES } from '@/data'
 import { parsePriceRange } from '@/lib/utils'
-import type { Salon } from '@/types'
+import { getPublicSalons } from '@/lib/public-salons'
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    let filtered = [...SALONS]
+    let filtered = getPublicSalons(SALONS, SERVICES)
 
     if (area) {
       filtered = filtered.filter(

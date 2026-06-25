@@ -18,7 +18,10 @@ import { Separator } from "@/components/ui/separator"
 import { SalonCard } from "@/components/salon/salon-card"
 import { CATEGORIES, SALONS, SERVICES } from "@/data"
 import { MUMBAI_AREAS, MUMBAI_CITIES, SERVICE_CATEGORIES, cn, parsePriceRange } from "@/lib/utils"
+import { getPublicSalons } from "@/lib/public-salons"
 import type { SearchFilters } from "@/types"
+
+const PUBLIC_SALONS = getPublicSalons(SALONS, SERVICES)
 
 const defaultFilters: SearchFilters = {
   query: "",
@@ -139,7 +142,7 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
   const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   const filteredSalons = useMemo(() => {
-    let result = [...SALONS]
+    let result = [...PUBLIC_SALONS]
 
     if (filters.query) {
       const q = filters.query.toLowerCase()
@@ -325,7 +328,7 @@ function ExploreHero({
         <div className="text-center max-w-2xl mx-auto">
           <Badge className="mb-4 px-3 py-1 bg-white/60 backdrop-blur-sm text-gray-700 border-0 rounded-full text-xs font-medium">
             <Sparkles className="w-3.5 h-3.5 mr-1.5 text-glowgo-pink" />
-            {SALONS.length} Salons in Mumbai
+            {PUBLIC_SALONS.length} Verified Salons in Mumbai
           </Badge>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
             Explore Salons in <span className="gradient-text">Mumbai</span>
