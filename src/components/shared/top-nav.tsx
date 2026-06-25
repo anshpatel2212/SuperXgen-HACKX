@@ -43,7 +43,7 @@ export function TopNav() {
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-glowgo-pink to-glowgo-lavender">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg font-bold tracking-tight">
+              <span className="text-lg font-bold">
                 <span className="gradient-text">GlowGo</span>
                 <span className="text-gray-700"> Mumbai</span>
               </span>

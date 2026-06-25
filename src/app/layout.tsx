@@ -4,6 +4,7 @@ import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
 import { TopNav } from "@/components/shared/top-nav"
 import { Footer } from "@/components/shared/footer"
+import { MobileBottomNav } from "@/components/shared/mobile-bottom-nav"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,11 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-white text-gray-900">
+      <body className="min-h-full flex flex-col bg-background text-gray-900">
         <AuthProvider>
           <TopNav />
           <main className="flex-1 pt-16">{children}</main>
           <Footer />
+          <MobileBottomNav />
         </AuthProvider>
       </body>
     </html>
