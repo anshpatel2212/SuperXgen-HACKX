@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import {
   Star,
@@ -52,6 +53,7 @@ import {
 } from "@/lib/demo-slots"
 import { ReviewForm } from "@/components/salon/review-form"
 import { isPublicSalon } from "@/lib/public-salons"
+import { TrustPassport, TrustPassportMini } from "@/components/shared/trust-passport"
 import type { Service, Review, Offer, Salon } from "@/types"
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
@@ -97,16 +99,80 @@ function SafeImage({
   alt: string
   className?: string
 }) {
-  const [failed, setFailed] = useState(false)
-  const resolvedSrc = !failed && src ? src : fallback
+  const resolvedSrc = src || fallback
 
   return (
-    <img
+    <SafeImageContent
+      key={resolvedSrc}
       src={resolvedSrc}
       alt={alt}
       className={className}
-      onError={() => setFailed(true)}
     />
+  )
+}
+
+function SafeImageContent({
+  src,
+  alt,
+  className,
+}: {
+  src?: string
+  alt: string
+  className?: string
+}) {
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const objectFit = className?.includes("object-contain") ? "object-contain" : "object-cover"
+
+  if (failed || !src) {
+    return <SalonImageFallback alt={alt} className={className} />
+  }
+
+  return (
+    <div className={cn("relative overflow-hidden", className)}>
+      {!loaded && <SalonImageFallback alt={alt} className="absolute inset-0" />}
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="(min-width: 1024px) 960px, 100vw"
+        className={cn(
+          objectFit,
+          "transition-opacity duration-300",
+          loaded ? "opacity-100" : "opacity-0"
+        )}
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+      />
+    </div>
+  )
+}
+
+function SalonImageFallback({
+  alt,
+  className,
+}: {
+  alt: string
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,#fff1f5,transparent_32%),linear-gradient(135deg,#fff8f5,#f7e8ff_58%,#fdf2f8)] text-gray-800",
+        className
+      )}
+      aria-label={alt || "GlowGo salon image fallback"}
+      role="img"
+    >
+      <div className="flex flex-col items-center gap-2 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/85 text-glowgo-pink shadow-sm">
+          <Sparkles className="h-5 w-5" />
+        </span>
+        <span className="max-w-36 px-3 text-xs font-semibold uppercase text-gray-500">
+          GlowGo salon
+        </span>
+      </div>
+    </div>
   )
 }
 
@@ -232,7 +298,7 @@ function SalonDetailContent({
   }
 
   return (
-    <div className="pt-16 pb-24 lg:pb-0">
+    <div className="overflow-x-clip pt-16 pb-24 lg:pb-0">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
         <Link
           href="/explore"
@@ -243,9 +309,9 @@ function SalonDetailContent({
         </Link>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid min-w-0 gap-8 lg:grid-cols-3">
+          <div className="min-w-0 space-y-8 lg:col-span-2">
             <GallerySection images={allImages} selectedImage={selectedImage} setSelectedImage={setSelectedImage} />
 
             <SalonInfoSection
@@ -257,17 +323,20 @@ function SalonDetailContent({
             />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="w-full bg-gray-100/80 rounded-xl p-1 h-auto">
-                <TabsTrigger value="services" className="flex-1 text-xs sm:text-sm py-2">
+              <TabsList className="w-full justify-start overflow-x-auto bg-gray-100/80 rounded-xl p-1 h-auto scrollbar-none">
+                <TabsTrigger value="services" className="shrink-0 flex-1 text-xs sm:text-sm py-2">
                   Services ({services.length})
                 </TabsTrigger>
-                <TabsTrigger value="about" className="flex-1 text-xs sm:text-sm py-2">
+                <TabsTrigger value="trust" className="shrink-0 flex-1 text-xs sm:text-sm py-2">
+                  Trust
+                </TabsTrigger>
+                <TabsTrigger value="about" className="shrink-0 flex-1 text-xs sm:text-sm py-2">
                   About
                 </TabsTrigger>
-                <TabsTrigger value="reviews" className="flex-1 text-xs sm:text-sm py-2">
+                <TabsTrigger value="reviews" className="shrink-0 flex-1 text-xs sm:text-sm py-2">
                   Reviews ({currentReviews.length})
                 </TabsTrigger>
-                <TabsTrigger value="offers" className="flex-1 text-xs sm:text-sm py-2">
+                <TabsTrigger value="offers" className="shrink-0 flex-1 text-xs sm:text-sm py-2">
                   Offers ({activeSalonOffers.length})
                 </TabsTrigger>
               </TabsList>
@@ -285,6 +354,10 @@ function SalonDetailContent({
 
               <TabsContent value="about" className="mt-6">
                 <AboutTab salon={salon} />
+              </TabsContent>
+
+              <TabsContent value="trust" className="mt-6">
+                <TrustPassport salon={salon} />
               </TabsContent>
 
               <TabsContent value="reviews" className="mt-6">
@@ -316,6 +389,10 @@ function SalonDetailContent({
               selectedTime={selectedTime}
               setSelectedTime={setSelectedTime}
             />
+
+            <div className="mt-6 hidden lg:block">
+              <TrustPassport salon={salon} service={selectedService} compact />
+            </div>
 
             <div className="mt-6">
               <AIRecommendationSection salon={salon} />
@@ -594,6 +671,8 @@ function SalonInfoSection({
           </Badge>
         )}
       </div>
+
+      <TrustPassportMini salon={salon} className="mt-4" />
 
       <div className="mt-5 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1059,7 +1138,7 @@ function BookingPanel({
 
   return (
     <>
-      <div className="hidden lg:block">
+          <div className="hidden min-w-0 lg:block">
         <Card className="border-gray-100 shadow-lg">
           <CardContent className="p-5 space-y-5">
             <div>
@@ -1120,6 +1199,8 @@ function BookingPanel({
                 </div>
               </div>
             )}
+
+            <TrustPassportMini salon={salon} />
 
             <div>
               <h3 className="font-semibold text-gray-900 text-sm mb-2">Select Date</h3>
@@ -1218,6 +1299,7 @@ function BookingPanel({
             <p className="text-sm font-bold text-gray-900">
               {selectedService ? formatPrice(getServicePrice(selectedService)) : "—"}
             </p>
+            <p className="mt-0.5 text-[10px] text-emerald-700">Trust Passport checked</p>
           </div>
           {selectedService && effectiveSelectedTime ? (
             <Link href={bookingHref}>

@@ -383,7 +383,6 @@ export function summarizeReviews(salonId: string): AIReviewSummary {
 
   const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
   const positiveCount = reviews.filter(r => r.rating >= 4).length
-  const negativeCount = reviews.filter(r => r.rating <= 2).length
 
   const highComments = reviews.filter(r => r.rating >= 4).map(r => r.comment.toLowerCase())
   const praiseWords = ['amazing', 'excellent', 'best', 'love', 'beautiful', 'wonderful', 'fantastic', 'incredible', 'professional', 'skilled']
@@ -693,10 +692,15 @@ export function getPersonalizedRecommendations(userId: string): {
   })
 
   const activeSalons = approved.filter(s => (computeSalonMetrics(s.id).total_services || 0) > 0)
+  const offset = activeSalons.length > 0 ? userId.length % activeSalons.length : 0
+  const personalizedActiveSalons = [
+    ...activeSalons.slice(offset),
+    ...activeSalons.slice(0, offset),
+  ]
 
   return {
-    recentSalons: activeSalons.slice(0, 4),
+    recentSalons: personalizedActiveSalons.slice(0, 4),
     topRated: sortedByRating.slice(0, 4),
-    popular: sortedByBookings.slice(0, 4),
+    popular: sortedByBookings.length > 0 ? sortedByBookings.slice(0, 4) : sortedByTrust.slice(0, 4),
   }
 }
