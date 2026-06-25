@@ -4,19 +4,15 @@ import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
 import {
-  Sparkles, FileText, Quote, Hash, Copy, Check,
+  Sparkles, Copy, Check,
   Loader2, Lightbulb, Wand2
 } from "lucide-react"
 
 export default function OwnerAIHelperPage() {
   const { user, isLoading } = useAuth()
-  const [activeTab, setActiveTab] = useState("description")
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
   const [input, setInput] = useState({

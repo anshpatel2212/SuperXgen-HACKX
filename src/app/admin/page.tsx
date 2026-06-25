@@ -29,14 +29,17 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <p className="text-gray-500 text-sm">Platform-wide analytics and management</p>
+      <div className="premium-card p-5 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+          <Badge className="mb-3 border-0 bg-emerald-50 text-emerald-700">Trust command center</Badge>
+          <h1 className="text-2xl font-bold text-gray-950">Admin Dashboard</h1>
+          <p className="text-gray-600 text-sm">Moderate verification, reviews, personas, and demo marketplace health.</p>
+          </div>
+          <Badge variant="outline" className="w-fit gap-1 bg-white">
+            <Sparkles className="w-3 h-3" /> Demo seed snapshot
+          </Badge>
         </div>
-        <Badge variant="outline" className="gap-1">
-          <Sparkles className="w-3 h-3" /> Demo seed snapshot
-        </Badge>
       </div>
 
       {/* Platform Metrics */}

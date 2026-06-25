@@ -1428,9 +1428,9 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pb-20 md:pb-0">
       {/* Progress */}
-      <div className="mb-8">
+      <div className="premium-card mb-6 p-4 sm:p-5">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-500">Step {step + 1} of {STEPS.length}</span>
           <span className="text-sm font-medium text-pink-600">{Math.round(((step + 1) / STEPS.length) * 100)}% Complete</span>
@@ -1440,6 +1440,12 @@ export function OnboardingWizard() {
             className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-500"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
+        </div>
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-3 text-sm text-amber-900">
+          <p className="font-semibold text-gray-950">Not sure what to enter?</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            Use realistic business details, default working hours, starter services, and verification documents to build a Trust Passport-ready draft.
+          </p>
         </div>
       </div>
 
@@ -1470,14 +1476,14 @@ export function OnboardingWizard() {
       </div>
 
       {/* Content */}
-      <Card className="border-2 shadow-lg">
+      <Card className="premium-card border-glowgo-border">
         <CardContent className="p-6 md:p-8">
           {renderStep()}
         </CardContent>
       </Card>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between mt-6">
+      <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-between border-t border-glowgo-border bg-white/95 px-4 py-3 shadow-[0_-12px_35px_rgba(17,24,39,0.10)] backdrop-blur md:static md:mt-6 md:border-0 md:bg-transparent md:px-0 md:py-0 md:shadow-none">
         <Button
           variant="outline"
           onClick={handleBack}

@@ -7,7 +7,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardFooter,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -33,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { formatDate, getInitials, MUMBAI_AREAS } from "@/lib/utils"
+import { getInitials, MUMBAI_AREAS } from "@/lib/utils"
 import { createSalon } from "@/lib/data-service"
 import { SALONS } from "@/data"
 import { useAuth } from "@/lib/auth-context"

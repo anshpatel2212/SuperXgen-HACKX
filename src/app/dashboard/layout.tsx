@@ -20,7 +20,7 @@ export default function DashboardLayout({
 
   return (
     <RoleGuard requiredRole="customer">
-      <div className="min-h-screen bg-gray-50/50">
+      <div className="min-h-screen bg-background">
         <DashboardSidebar
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -57,7 +57,7 @@ export default function DashboardLayout({
             </div>
           </header>
 
-          <main className="px-4 pb-4 pt-4 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
+          <main className="px-4 pb-24 pt-4 sm:px-6 lg:px-8 lg:pb-8">
             {children}
           </main>
         </div>

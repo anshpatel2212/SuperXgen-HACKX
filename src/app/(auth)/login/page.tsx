@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Sparkles, Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react"
+import { Sparkles, Mail, Lock, Eye, EyeOff, LogIn, AlertCircle, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -63,8 +63,8 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-glowgo-pink/20 via-glowgo-cream to-glowgo-lavender/20">
+    <div className="min-h-screen flex mumbai-afterglow">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-glowgo-pink/30 via-transparent to-glowgo-lavender/30" />
         <div className="relative z-10 flex flex-col justify-center px-12">
           <div className="flex items-center gap-3 mb-8">
@@ -79,18 +79,18 @@ function LoginPageContent() {
             </div>
           </div>
           <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-4">
-            Welcome back to
+            Demo the Beauty OS for
             <br />
-            <span className="gradient-text">GlowGo</span>
+            <span className="gradient-text">verified Mumbai salons</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-md">
-            Your beauty journey continues here. Book your favorite salons, track appointments, and discover new styles.
+            Use seeded customer, owner, and admin personas to explore trust-first discovery, smart bookings, and salon operations.
           </p>
           <div className="mt-12 space-y-4">
-            {["AI-powered salon recommendations", "Easy online booking", "Exclusive member offers"].map((text, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-glowgo-pink/20">
-                  <Sparkles className="w-4 h-4 text-glowgo-rose" />
+            {["Trust Passport before booking", "Smart capacity-aware time blocks", "Owner and admin demo workflows"].map((text) => (
+              <div key={text} className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-sm">
+                  <ShieldCheck className="w-4 h-4 text-glowgo-pink" />
                 </div>
                 <span className="text-sm text-gray-700">{text}</span>
               </div>
@@ -99,11 +99,14 @@ function LoginPageContent() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(17,24,39,0.10)] backdrop-blur-xl sm:p-8">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Sign In</h2>
-            <p className="text-sm text-gray-500 mt-1">Welcome back! Please enter your details.</p>
+            <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-glowgo-pink to-rose-500 text-white">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Sign in to GlowGo</h2>
+            <p className="text-sm text-gray-500 mt-1">Use demo accounts for judging.</p>
           </div>
 
           {visibleError && (
@@ -113,9 +116,9 @@ function LoginPageContent() {
             </div>
           )}
 
-          <div className="mb-5 rounded-xl border border-glowgo-lavender/30 bg-glowgo-lavender/5 p-3">
-            <p className="mb-2 text-xs font-medium text-gray-700">Demo-local accounts</p>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="mb-5 rounded-2xl border border-glowgo-border bg-glowgo-soft/70 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase text-gray-700">Seeded demo accounts</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {DEMO_ACCOUNTS.map((account) => (
                 <button
                   key={account.user.role}
@@ -125,7 +128,7 @@ function LoginPageContent() {
                     setPassword(account.password)
                     setError("")
                   }}
-                  className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-glowgo-pink hover:text-glowgo-pink"
+                  className="min-h-11 rounded-xl border border-white bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:border-glowgo-pink hover:text-glowgo-pink"
                 >
                   {account.label}
                 </button>
@@ -183,7 +186,7 @@ function LoginPageContent() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm h-9"
+              className="w-full premium-button h-11 rounded-xl"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -211,7 +214,7 @@ function LoginPageContent() {
               <Button
                 variant="outline"
                 disabled
-                className="h-8 text-xs"
+                className="h-10 text-xs"
                 title="Google sign-in is planned for production. Use demo accounts for judging."
               >
                 <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24">
@@ -225,7 +228,7 @@ function LoginPageContent() {
               <Button
                 variant="outline"
                 disabled
-                className="h-8 text-xs"
+                className="h-10 text-xs"
                 title="Facebook sign-in is temporarily unavailable in the demo."
               >
                 <svg className="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="#1877F2">

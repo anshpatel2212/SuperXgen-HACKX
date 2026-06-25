@@ -52,15 +52,15 @@ export default function OwnerLayout({
 
   return (
     <RoleGuard requiredRole="owner">
-      <div className="flex min-h-screen bg-glowgo-cream/30">
+      <div className="flex min-h-screen bg-background">
         <aside className="hidden w-60 shrink-0 border-r bg-background md:block">
           <OwnerSidebar />
         </aside>
 
         <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-glowgo-border bg-white/85 px-4 backdrop-blur-md">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger className="inline-flex items-center justify-center rounded-lg size-7 hover:bg-muted hover:text-foreground transition-colors">
+            <SheetTrigger className="inline-flex items-center justify-center rounded-lg size-9 hover:bg-muted hover:text-foreground transition-colors md:hidden">
               <Menu className="size-4" />
             </SheetTrigger>
             <SheetContent side="left" className="w-60 p-0">
@@ -130,7 +130,7 @@ export default function OwnerLayout({
           </div>
           </header>
 
-          <main className="flex-1 px-4 pb-4 pt-4 md:px-6 md:pb-6">{children}</main>
+          <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-6">{children}</main>
         </div>
       </div>
     </RoleGuard>
