@@ -32,14 +32,14 @@ function resolveOffer(
   salonId: string,
   demoOffer?: Offer
 ): Offer | null {
-  const now = Date.now()
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
   const seededOffer = OFFERS.find(
     (candidate) =>
       candidate.id === offerId &&
       candidate.salon_id === salonId &&
       candidate.is_active &&
-      new Date(candidate.valid_from).getTime() <= now &&
-      new Date(candidate.valid_till).getTime() >= now
+      candidate.valid_from <= today &&
+      candidate.valid_till >= today
   )
   if (seededOffer) return seededOffer
 
@@ -48,8 +48,8 @@ function resolveOffer(
     demoOffer.id === offerId &&
     demoOffer.salon_id === salonId &&
     demoOffer.is_active &&
-    new Date(demoOffer.valid_from).getTime() <= now &&
-    new Date(demoOffer.valid_till).getTime() >= now
+    demoOffer.valid_from <= today &&
+    demoOffer.valid_till >= today
   ) {
     return demoOffer
   }

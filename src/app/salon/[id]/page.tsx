@@ -37,7 +37,7 @@ import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { SALONS, SERVICES } from "@/data"
-import { formatPrice, formatDate, formatTime, getInitials, cn, toDateInputValue } from "@/lib/utils"
+import { formatPrice, formatDate, formatTime, getInitials, cn, toDateInputValue, getMumbaiTodayString } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
 import { getLoginHref } from "@/lib/auth-routing"
 import { useDemoFavorites } from "@/lib/demo-favorites"
@@ -81,7 +81,7 @@ const NEXT_7_DAYS = Array.from({ length: 7 }, (_, i) => {
   }
 })
 
-const DEMO_CURRENT_DATE = "2026-06-22"
+const DEMO_CURRENT_DATE = getMumbaiTodayString()
 const SALON_IMAGE_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80"
 
 function getServicePrice(service: Service) {

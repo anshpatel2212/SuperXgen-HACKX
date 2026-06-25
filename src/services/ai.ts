@@ -11,7 +11,7 @@ import {
   getEffectivePriceWithOffers, getSalonOffers, getSalonServices,
   computeFinalPrice
 } from '@/services/calculations'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, getMumbaiTodayString } from '@/lib/utils'
 
 const SERVICE_KEYWORDS: Record<string, string[]> = {
   'Bridal Makeup': ['bridal', 'wedding', 'bride', 'engagement makeup', 'wedding makeup'],
@@ -199,8 +199,8 @@ function getLiveContextForSalon(salonId: string) {
     })),
     offers: offers.map(o => ({
       ...o,
-      is_valid: new Date(o.valid_till) >= new Date(),
-      days_remaining: Math.ceil((new Date(o.valid_till).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+      is_valid: o.valid_till >= getMumbaiTodayString(),
+      days_remaining: Math.max(0, Math.ceil((new Date(`${o.valid_till}T23:59:59`).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
     })),
     trust_badge: trustBadge,
     response_badge: responseBadge,
@@ -290,7 +290,7 @@ export function generateRecommendationReasoning(
   }
 
   if (offers.length > 0) {
-    const validOffers = offers.filter(o => o.is_active && new Date(o.valid_till) >= new Date())
+    const validOffers = offers.filter(o => o.is_active && o.valid_till >= getMumbaiTodayString())
     if (validOffers.length > 0) {
       reasons.push(`${validOffers.length} active offer${validOffers.length > 1 ? 's' : ''} available`)
     }

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatCard } from "@/components/owner/stat-card"
 import { getPlatformMetrics } from "@/lib/data-service"
-import { formatPrice } from "@/lib/utils"
+import { formatPrice, getMumbaiTodayString } from "@/lib/utils"
 import {
   Store, Users, CalendarCheck, IndianRupee,
   Shield, Sparkles, TrendingUp, Star, Tag,
@@ -154,7 +154,7 @@ export default function AdminDashboardPage() {
             </p>
             <div className="flex gap-2 mt-3">
               <Badge variant="default" className="text-xs bg-green-100 text-green-700">
-                {OFFERS.filter(o => o.is_active && new Date(o.valid_till) >= new Date()).length} valid
+                {OFFERS.filter(o => o.is_active && o.valid_till >= getMumbaiTodayString()).length} valid
               </Badge>
               <Badge variant="secondary" className="text-xs">
                 {OFFERS.filter(o => !o.is_active).length} inactive

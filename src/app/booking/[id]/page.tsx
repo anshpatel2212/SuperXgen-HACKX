@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { cn, formatPrice, formatDate, formatTime, toDateInputValue } from "@/lib/utils"
+import { cn, formatPrice, formatDate, formatTime, toDateInputValue, getMumbaiTodayString } from "@/lib/utils"
 import { SALONS, SERVICES } from "@/data"
 import { createBooking } from "@/lib/api-client"
 import { useDemoOffers } from "@/lib/demo-offers"
@@ -126,13 +126,13 @@ function BookingPageContent() {
 
   const handleApplyCoupon = () => {
     setCouponError("")
-    const now = Date.now()
+    const today = getMumbaiTodayString()
     const offer = salonOffers.find(
       (candidate) =>
         candidate.coupon_code.toLowerCase() === couponCode.trim().toLowerCase() &&
         candidate.is_active &&
-        new Date(candidate.valid_from).getTime() <= now &&
-        new Date(candidate.valid_till).getTime() >= now
+        candidate.valid_from <= today &&
+        candidate.valid_till >= today
     )
     if (offer) {
       if (totalAmount >= offer.min_purchase) {
