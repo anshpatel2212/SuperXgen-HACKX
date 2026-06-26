@@ -11,7 +11,9 @@ export function TopNav() {
     pathname.startsWith("/admin") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
-    pathname.startsWith("/forgot-password")
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/design") ||
+    pathname.startsWith("/aurelia-preview")
   ) {
     return null
   }

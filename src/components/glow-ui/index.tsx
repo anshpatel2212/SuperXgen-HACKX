@@ -947,7 +947,9 @@ export function GlowMobileNav() {
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/booking") ||
     pathname.startsWith("/salon/") ||
-    pathname.startsWith("/owner/onboarding")
+    pathname.startsWith("/owner/onboarding") ||
+    pathname.startsWith("/design") ||
+    pathname.startsWith("/aurelia-preview")
   ) {
     return null
   }
