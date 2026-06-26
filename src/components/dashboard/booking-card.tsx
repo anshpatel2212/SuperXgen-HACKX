@@ -1,14 +1,12 @@
 "use client"
 
-import Image from "next/image"
 import { Calendar, Clock, MapPin, XCircle, Star, Home } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { GlowImageFallback } from "@/components/glow-ui"
 import { cn, formatPrice, formatDate, formatTime, getStatusColor } from "@/lib/utils"
 import type { Booking } from "@/types"
-
-const SALON_IMAGE_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200&q=80"
 
 interface BookingCardProps {
   booking: Booking
@@ -21,19 +19,19 @@ export function BookingCard({ booking, onCancel, onReview, onReschedule }: Booki
   const statusColor = getStatusColor(booking.status)
 
   return (
-    <Card className="border-gray-100 hover:shadow-md transition-all duration-300 overflow-hidden">
+    <Card className="overflow-hidden rounded-[1.35rem] border-[#ead8c5] bg-white/90 shadow-[0_18px_50px_rgba(45,29,24,0.06)] transition-all duration-300 hover:shadow-[0_24px_70px_rgba(45,29,24,0.10)]">
       <CardContent className="p-0">
-        <div className="flex items-center gap-3 p-4 border-b border-gray-50">
-          <Image
-            src={booking.salon?.logo_url || SALON_IMAGE_FALLBACK}
+        <div className="flex items-center gap-3 border-b border-[#f0e1ce] p-4">
+          <GlowImageFallback
+            src={booking.salon?.logo_url || booking.salon?.cover_image}
             alt={booking.salon?.name || "Salon"}
-            width={40}
-            height={40}
-            className="w-10 h-10 rounded-lg object-cover"
+            name={booking.salon?.name || "Salon"}
+            className="h-11 w-11 rounded-2xl"
+            sizes="44px"
           />
-          <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-gray-900 truncate">{booking.salon?.name}</h4>
-            <div className="flex items-center gap-1 text-xs text-gray-500">
+          <div className="min-w-0 flex-1">
+            <h4 className="truncate font-semibold text-[#201717]">{booking.salon?.name}</h4>
+            <div className="flex items-center gap-1 text-xs text-[#6f5d56]">
               <MapPin className="w-3 h-3" />
               {booking.salon?.area}, {booking.salon?.city}
             </div>
@@ -45,8 +43,8 @@ export function BookingCard({ booking, onCancel, onReview, onReschedule }: Booki
 
         <div className="p-4 space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">{booking.service?.name}</span>
-            <span className="font-medium text-gray-900">{formatPrice(booking.total_price)}</span>
+            <span className="text-[#6f5d56]">{booking.service?.name}</span>
+            <span className="font-semibold text-[#201717]">{formatPrice(booking.total_price)}</span>
           </div>
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <Calendar className="w-3 h-3" />
@@ -71,7 +69,7 @@ export function BookingCard({ booking, onCancel, onReview, onReschedule }: Booki
             <Button
               variant="outline"
               size="sm"
-              className="text-red-600 border-red-200 hover:bg-red-50 h-7 text-xs"
+              className="min-h-11 rounded-full border-red-200 text-xs text-red-600 hover:bg-red-50"
               onClick={() => onCancel(booking.id)}
             >
               <XCircle className="w-3.5 h-3.5 mr-1" />
@@ -82,7 +80,7 @@ export function BookingCard({ booking, onCancel, onReview, onReschedule }: Booki
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs"
+              className="min-h-11 rounded-full text-xs"
               onClick={() => onReschedule(booking.id)}
             >
               <Calendar className="w-3.5 h-3.5 mr-1" />
@@ -92,7 +90,7 @@ export function BookingCard({ booking, onCancel, onReview, onReschedule }: Booki
           {booking.status === "completed" && onReview && (
             <Button
               size="sm"
-              className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm h-7 text-xs"
+              className="min-h-11 rounded-full bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)] text-xs text-white hover:opacity-90 shadow-sm"
               onClick={() => onReview(booking.id)}
             >
               <Star className="w-3.5 h-3.5 mr-1" />

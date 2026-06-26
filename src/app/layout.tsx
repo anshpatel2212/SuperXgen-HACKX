@@ -5,11 +5,12 @@ import { AuthProvider } from "@/lib/auth-context"
 import { TopNav } from "@/components/shared/top-nav"
 import { Footer } from "@/components/shared/footer"
 import { MobileBottomNav } from "@/components/shared/mobile-bottom-nav"
+import { AppMain } from "@/components/shared/app-main"
 
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-sans",
+  variable: "--font-inter",
 })
 
 export const metadata: Metadata = {
@@ -24,11 +25,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-gray-900">
         <AuthProvider>
           <TopNav />
-          <main className="flex-1 pt-16">{children}</main>
+          <AppMain>{children}</AppMain>
           <Footer />
           <MobileBottomNav />
         </AuthProvider>

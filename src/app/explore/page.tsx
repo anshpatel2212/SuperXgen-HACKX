@@ -21,9 +21,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { SalonCard } from "@/components/salon/salon-card"
+import { GlowAppShell, GlowButton, GlowCard, GlowCompareBar, GlowEmptyState } from "@/components/glow-ui"
 import { CATEGORIES, OFFERS, SALONS, SERVICES } from "@/data"
 import { MUMBAI_AREAS, MUMBAI_CITIES, SERVICE_CATEGORIES, cn, formatPrice, parsePriceRange } from "@/lib/utils"
-import { getPublicSalons } from "@/lib/public-salons"
+import { getPublicSalons, isPublicService } from "@/lib/public-salons"
 import { computeSalonMetrics } from "@/services/calculations"
 import type { Salon, SearchFilters } from "@/types"
 
@@ -282,10 +283,10 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
   }
 
   return (
-    <div className="bg-background">
+    <GlowAppShell className="bg-[linear-gradient(180deg,#fffaf5_0%,#fffdf9_34%,#fffaf5_100%)]">
       <ExploreHero filters={filters} updateFilter={updateFilter} />
 
-      <div className="sticky top-16 z-40 bg-white/90 backdrop-blur-md border-b border-glowgo-border shadow-sm">
+      <div className="sticky top-16 z-40 border-y border-[#ead8c5]/80 bg-white/88 shadow-[0_12px_40px_rgba(45,29,24,0.06)] backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FilterBar
             filters={filters}
@@ -302,15 +303,15 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <AreaQuickChips filters={filters} updateFilter={updateFilter} />
 
-        <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-500">
-            Showing <span className="font-semibold text-gray-900">{visibleSalons.length}</span> of{" "}
-            <span className="font-semibold text-gray-900">{filteredSalons.length}</span> salons
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-[#6f5d56]">
+            Showing <span className="font-semibold text-[#201717]">{visibleSalons.length}</span> of{" "}
+            <span className="font-semibold text-[#201717]">{filteredSalons.length}</span> salons
           </p>
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-center rounded-xl border-glowgo-border bg-white sm:w-auto"
+            className="min-h-11 w-full justify-center rounded-full border-[#ead8c5] bg-white text-[#4b3a36] sm:w-auto"
             onClick={() => compareSalons.length >= 2 && setCompareOpen(true)}
             disabled={compareSalons.length < 2}
           >
@@ -350,27 +351,14 @@ function ExploreResults({ initialFilters }: { initialFilters: SearchFilters }) {
         )}
       </div>
 
-      {compareSalons.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-glowgo-border bg-white/95 px-4 py-3 shadow-[0_-12px_35px_rgba(17,24,39,0.10)] backdrop-blur-xl md:bottom-4 md:left-1/2 md:max-w-lg md:-translate-x-1/2 md:rounded-2xl md:border">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-950">{compareSalons.length} selected for compare</p>
-              <p className="truncate text-xs text-gray-500">{compareSalons.map((salon) => salon.name).join(" vs ")}</p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setCompareIds([])}>
-                Clear
-              </Button>
-              <Button size="sm" className="premium-button" disabled={compareSalons.length < 2} onClick={() => setCompareOpen(true)}>
-                Compare
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <GlowCompareBar
+        salons={compareSalons}
+        onClear={() => setCompareIds([])}
+        onCompare={() => setCompareOpen(true)}
+      />
 
       <CompareDialog open={compareOpen} onOpenChange={setCompareOpen} salons={compareSalons} />
-    </div>
+    </GlowAppShell>
   )
 }
 
@@ -382,37 +370,43 @@ function ExploreHero({
   updateFilter: (key: keyof SearchFilters, value: string) => void
 }) {
   return (
-    <section className="relative overflow-hidden mumbai-afterglow py-10 sm:py-14">
-
+    <section className="relative overflow-hidden bg-[radial-gradient(circle_at_12%_12%,rgba(244,183,64,0.22),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(167,139,250,0.18),transparent_28%),linear-gradient(135deg,#fffaf5,#fffdf9_52%,#fff1f5)] py-8 sm:py-14">
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto">
-          <Badge className="mb-4 px-3 py-1 bg-white/70 backdrop-blur-sm text-gray-700 border-0 rounded-full text-xs font-medium">
-            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-glowgo-pink" />
-            {PUBLIC_SALONS.length} verified demo salons · Smart capacity-aware booking
-          </Badge>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-950">
-            Discover verified salons in <span className="gradient-text">Mumbai</span>
+        <div className="mx-auto max-w-full text-center sm:max-w-3xl">
+          <div className="mb-4 inline-flex max-w-[21rem] items-center justify-center gap-1.5 rounded-full border border-[#ead8c5] bg-white/75 px-3 py-1.5 text-center text-[11px] font-semibold leading-tight text-[#7d5b17] shadow-sm backdrop-blur sm:max-w-full sm:text-xs">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#db2777]" />
+            <span className="min-w-0 sm:hidden">
+              {PUBLIC_SALONS.length} verified salons · Smart booking
+            </span>
+            <span className="hidden min-w-0 sm:inline">
+              {PUBLIC_SALONS.length} verified demo salons · Smart capacity-aware booking
+            </span>
+          </div>
+          <h1 className="mx-auto max-w-[21rem] text-[2rem] font-semibold leading-tight tracking-tight text-[#201717] [overflow-wrap:anywhere] sm:max-w-3xl sm:text-5xl lg:text-6xl">
+            Discover verified salons in <span className="text-[#b71b62]">Mumbai</span>
           </h1>
-          <p className="mt-3 text-gray-600 text-sm sm:text-lg">
+          <p className="mx-auto mt-3 max-w-[21rem] text-sm leading-6 text-[#6f5d56] sm:max-w-2xl sm:text-lg">
             Filter by service, area, price, trust score, and availability signals before choosing where to book.
           </p>
 
-          <div className="mt-6 max-w-xl mx-auto">
-            <div className="flex items-center gap-2 bg-white/85 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/70">
-              <Search className="w-5 h-5 text-gray-400 ml-3 shrink-0" />
+          <div className="mx-auto mt-6 max-w-[21rem] sm:max-w-xl">
+            <div className="flex items-center gap-2 rounded-full border border-[#ead8c5]/90 bg-white/88 p-2 shadow-[0_20px_60px_rgba(45,29,24,0.10)] backdrop-blur-xl">
+              <Search className="ml-3 h-5 w-5 shrink-0 text-[#8f6b25]" />
               <input
                 type="text"
-                placeholder="Search by salon name, area, or service..."
+                placeholder="Search salons, areas, services..."
                 value={filters.query}
                 onChange={(e) => updateFilter("query", e.target.value)}
-                className="flex-1 h-10 bg-transparent border-0 text-sm text-gray-700 outline-none placeholder:text-gray-400"
+                className="h-10 min-w-0 flex-1 border-0 bg-transparent text-sm text-[#4b3a36] outline-none placeholder:text-[#9f8981]"
               />
               {filters.query && (
                 <button
+                  type="button"
                   onClick={() => updateFilter("query", "")}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg mr-1"
+                  className="mr-1 flex min-h-9 min-w-9 items-center justify-center rounded-full hover:bg-[#fff1f5]"
+                  aria-label="Clear search query"
                 >
-                  <X className="w-4 h-4 text-gray-400" />
+                  <X className="h-4 w-4 text-[#6f5d56]" />
                 </button>
               )}
             </div>
@@ -432,9 +426,9 @@ function AreaQuickChips({
 }) {
   const quickAreas = ["Bandra", "Juhu", "Powai", "Andheri", "Colaba", "Lower Parel"]
   return (
-    <div className="mb-5 rounded-2xl border border-glowgo-border bg-white/80 p-3 shadow-sm">
-      <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-gray-600">
-        <MapPinned className="h-4 w-4 text-glowgo-pink" />
+    <GlowCard className="mb-5 p-3">
+      <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-[#6f5d56]">
+        <MapPinned className="h-4 w-4 text-[#8f6b25]" />
         Location sorting is demo-safe. Choose your Mumbai area.
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -442,8 +436,8 @@ function AreaQuickChips({
           type="button"
           onClick={() => updateFilter("area", "")}
           className={cn(
-            "min-h-10 shrink-0 rounded-full border px-4 text-sm font-medium",
-            !filters.area ? "border-glowgo-pink bg-glowgo-soft text-glowgo-pink" : "border-glowgo-border bg-white text-gray-600"
+            "min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold",
+            !filters.area ? "border-[#d7b982] bg-[#fff8dc] text-[#7d5b17]" : "border-[#ead8c5] bg-white text-[#6f5d56]"
           )}
         >
           All areas
@@ -454,15 +448,15 @@ function AreaQuickChips({
             type="button"
             onClick={() => updateFilter("area", filters.area === area ? "" : area)}
             className={cn(
-              "min-h-10 shrink-0 rounded-full border px-4 text-sm font-medium",
-              filters.area === area ? "border-glowgo-pink bg-glowgo-soft text-glowgo-pink" : "border-glowgo-border bg-white text-gray-600"
+              "min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold",
+              filters.area === area ? "border-[#d7b982] bg-[#fff8dc] text-[#7d5b17]" : "border-[#ead8c5] bg-white text-[#6f5d56]"
             )}
           >
             {area}
           </button>
         ))}
       </div>
-    </div>
+    </GlowCard>
   )
 }
 
@@ -490,7 +484,7 @@ function FilterBar({
         <select
           value={filters.area}
           onChange={(e) => updateFilter("area", e.target.value)}
-          className="w-full h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-glowgo-pink"
+          className="h-11 w-full rounded-xl border border-[#ead8c5] bg-white px-3 text-sm text-[#4b3a36] outline-none focus:border-[#db2777]"
         >
           <option value="">All Areas</option>
           {MUMBAI_AREAS.map((area) => (
@@ -506,7 +500,7 @@ function FilterBar({
         <select
           value={filters.service_type}
           onChange={(e) => updateFilter("service_type", e.target.value)}
-          className="w-full h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-glowgo-pink"
+          className="h-11 w-full rounded-xl border border-[#ead8c5] bg-white px-3 text-sm text-[#4b3a36] outline-none focus:border-[#db2777]"
         >
           <option value="">All Services</option>
           {SERVICE_CATEGORIES.map((cat) => (
@@ -525,7 +519,7 @@ function FilterBar({
             placeholder="Min"
             value={filters.min_price || ""}
             onChange={(e) => updateFilter("min_price", Number(e.target.value) || 0)}
-            className="w-full h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-glowgo-pink"
+            className="h-11 w-full rounded-xl border border-[#ead8c5] bg-white px-3 text-sm text-[#4b3a36] outline-none focus:border-[#db2777]"
           />
           <span className="text-gray-400">-</span>
           <input
@@ -533,7 +527,7 @@ function FilterBar({
             placeholder="Max"
             value={filters.max_price >= 100000 ? "" : filters.max_price}
             onChange={(e) => updateFilter("max_price", Number(e.target.value) || 100000)}
-            className="w-full h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-glowgo-pink"
+            className="h-11 w-full rounded-xl border border-[#ead8c5] bg-white px-3 text-sm text-[#4b3a36] outline-none focus:border-[#db2777]"
           />
         </div>
       </div>
@@ -548,7 +542,7 @@ function FilterBar({
               key={r}
               onClick={() => toggleRating(r)}
               className={cn(
-                "flex items-center justify-center w-9 h-9 rounded-lg border text-xs font-medium transition-all",
+                "flex size-11 items-center justify-center rounded-xl border text-xs font-medium transition-all",
                 filters.min_rating === r
                   ? "border-yellow-400 bg-yellow-50 text-yellow-600"
                   : "border-gray-200 text-gray-500 hover:border-gray-300"
@@ -571,7 +565,7 @@ function FilterBar({
               key={g}
               onClick={() => updateFilter("gender", filters.gender === g ? "" : g)}
               className={cn(
-                "flex-1 h-9 rounded-lg border text-sm font-medium transition-all",
+                "min-h-11 flex-1 rounded-xl border text-sm font-medium transition-all",
                 filters.gender === g
                   ? "border-glowgo-pink bg-glowgo-pink/10 text-glowgo-pink"
                   : "border-gray-200 text-gray-500 hover:border-gray-300"
@@ -608,7 +602,7 @@ function FilterBar({
 
       <Button
         variant="outline"
-        className="w-full h-9 text-sm"
+        className="min-h-11 w-full rounded-xl text-sm"
         onClick={clearFilters}
       >
         Clear All Filters
@@ -708,7 +702,7 @@ function FilterBar({
       <div className="lg:hidden py-3">
         <div className="flex items-center gap-3">
           <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
-            <SheetTrigger className="inline-flex items-center justify-center h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors relative">
+            <SheetTrigger className="relative inline-flex min-h-11 items-center justify-center rounded-full border border-[#ead8c5] bg-white px-4 text-sm font-semibold text-[#4b3a36] transition-colors hover:bg-[#fffdf9]">
               <SlidersHorizontal className="w-4 h-4 mr-1.5" />
               Filters
               {activeFilterCount > 0 && (
@@ -717,7 +711,7 @@ function FilterBar({
                 </span>
               )}
             </SheetTrigger>
-            <SheetContent side="left" className="w-80">
+            <SheetContent side="bottom" className="max-h-[86vh] rounded-t-[1.5rem] border-[#ead8c5] bg-[#fffdf9]">
               <SheetHeader>
                 <SheetTitle>Filters</SheetTitle>
               </SheetHeader>
@@ -728,7 +722,7 @@ function FilterBar({
           <select
             value={filters.sort_by}
             onChange={(e) => updateFilter("sort_by", e.target.value)}
-            className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-700 outline-none focus:border-glowgo-pink flex-1"
+            className="min-h-11 flex-1 rounded-full border border-[#ead8c5] bg-white px-3 text-xs text-[#4b3a36] outline-none focus:border-[#db2777]"
           >
             <option value="popularity">Most Popular</option>
             <option value="rating">Highest Rated</option>
@@ -740,7 +734,7 @@ function FilterBar({
           <button
             type="button"
             disabled
-            className="cursor-not-allowed rounded-lg border border-gray-200 px-2 py-2 text-xs text-gray-400"
+            className="min-h-11 cursor-not-allowed rounded-full border border-[#ead8c5] px-3 py-2 text-xs text-[#9f8981]"
             title="Map view requires the planned maps integration"
           >
             Map · demo
@@ -762,17 +756,17 @@ function CompareDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="max-h-[88vh] overflow-y-auto rounded-[1.35rem] border-[#ead8c5] bg-[#fffdf9] sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <GitCompareArrows className="h-5 w-5 text-glowgo-pink" />
+          <DialogTitle className="flex items-center gap-2 text-[#201717]">
+            <GitCompareArrows className="h-5 w-5 text-[#8f6b25]" />
             Compare salons
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-3 md:grid-cols-3">
           {salons.map((salon) => {
             const metrics = computeSalonMetrics(salon.id, true)
-            const topServices = SERVICES.filter((service) => service.salon_id === salon.id && service.active).slice(0, 3)
+            const topServices = SERVICES.filter((service) => service.salon_id === salon.id && isPublicService(service)).slice(0, 3)
             const activeOffers = OFFERS.filter((offer) => offer.salon_id === salon.id && offer.is_active)
             const prices = topServices.map((service) => service.final_price || service.discounted_price || service.price).filter(Boolean)
             const priceLabel = prices.length
@@ -780,11 +774,11 @@ function CompareDialog({
               : salon.price_range || "Price on request"
 
             return (
-              <div key={salon.id} className="rounded-2xl border border-glowgo-border bg-white p-4">
+              <div key={salon.id} className="rounded-2xl border border-[#ead8c5] bg-white p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="truncate text-sm font-bold text-gray-950">{salon.name}</h3>
-                    <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                    <h3 className="truncate text-sm font-bold text-[#201717]">{salon.name}</h3>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-[#6f5d56]">
                       <MapPinned className="h-3.5 w-3.5" />
                       {salon.area}
                     </p>
@@ -795,21 +789,21 @@ function CompareDialog({
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                  <div className="rounded-xl bg-yellow-50 p-3">
-                    <p className="text-[11px] text-gray-500">Rating</p>
-                    <p className="font-semibold text-gray-950">{salon.rating_avg.toFixed(1)} ({salon.review_count})</p>
+                  <div className="rounded-xl bg-[#fff8dc] p-3">
+                    <p className="text-[11px] text-[#6f5d56]">Rating</p>
+                    <p className="font-semibold text-[#201717]">{salon.rating_avg.toFixed(1)} ({salon.review_count})</p>
                   </div>
-                  <div className="rounded-xl bg-violet-50 p-3">
-                    <p className="text-[11px] text-gray-500">Trust score</p>
-                    <p className="font-semibold text-gray-950">{metrics.trust_score}/100</p>
+                  <div className="rounded-xl bg-[#f5f1ff] p-3">
+                    <p className="text-[11px] text-[#6f5d56]">Trust score</p>
+                    <p className="font-semibold text-[#201717]">{metrics.trust_score}/100</p>
                   </div>
                   <div className="rounded-xl bg-pink-50 p-3">
-                    <p className="text-[11px] text-gray-500">Price</p>
-                    <p className="font-semibold text-gray-950">{priceLabel}</p>
+                    <p className="text-[11px] text-[#6f5d56]">Price</p>
+                    <p className="font-semibold text-[#201717]">{priceLabel}</p>
                   </div>
                   <div className="rounded-xl bg-amber-50 p-3">
-                    <p className="text-[11px] text-gray-500">Offers</p>
-                    <p className="font-semibold text-gray-950">{activeOffers.length || "None"}</p>
+                    <p className="text-[11px] text-[#6f5d56]">Offers</p>
+                    <p className="font-semibold text-[#201717]">{activeOffers.length || "None"}</p>
                   </div>
                 </div>
 
@@ -856,17 +850,11 @@ function CompareDialog({
 
 function EmptyState({ clearFilters }: { clearFilters: () => void }) {
   return (
-    <div className="text-center py-20">
-      <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-6">
-        <Search className="w-10 h-10 text-gray-300" />
-      </div>
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">No Salons Found</h3>
-      <p className="text-gray-500 max-w-sm mx-auto mb-6">
-        We couldn&apos;t find any salons matching your filters. Try adjusting your search criteria.
-      </p>
-      <Button variant="outline" className="rounded-full" onClick={clearFilters}>
-        Clear All Filters
-      </Button>
-    </div>
+    <GlowEmptyState
+      icon={<Search className="h-6 w-6" />}
+      title="No salons found"
+      copy="We could not find verified public salons matching those filters. Try a broader area, service, or price range."
+      action={<GlowButton variant="secondary" onClick={clearFilters}>Clear all filters</GlowButton>}
+    />
   )
 }

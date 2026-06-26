@@ -20,7 +20,7 @@ export default function DashboardLayout({
 
   return (
     <RoleGuard requiredRole="customer">
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-[#fffaf5] text-[#201717]">
         <DashboardSidebar
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -29,12 +29,12 @@ export default function DashboardLayout({
         />
 
         <div className="flex-1 flex flex-col">
-          <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
+          <header className="sticky top-0 z-30 border-b border-[#ead8c5] bg-white/88 backdrop-blur-xl">
             <div className="flex items-center justify-between px-4 h-14">
               <div className="flex items-center gap-3">
                 <DashboardMobileToggle onClick={() => setSidebarOpen(true)} />
                 <div className="hidden sm:flex items-center text-xs text-gray-400">
-                  <span className="text-gray-600">Dashboard</span>
+                  <span className="font-semibold text-[#6f5d56]">Customer dashboard</span>
                 </div>
               </div>
               <div className="flex items-center gap-3">

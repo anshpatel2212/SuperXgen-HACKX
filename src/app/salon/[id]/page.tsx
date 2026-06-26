@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import {
   Star,
@@ -54,6 +53,8 @@ import {
 import { ReviewForm } from "@/components/salon/review-form"
 import { isPublicSalon } from "@/lib/public-salons"
 import { TrustPassport, TrustPassportMini } from "@/components/shared/trust-passport"
+import { GlowAppShell, GlowBookingBottomSheet, GlowImageFallback } from "@/components/glow-ui"
+import { cleanGlowImageUrls } from "@/lib/glow-images"
 import type { Service, Review, Offer, Salon } from "@/types"
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
@@ -82,97 +83,27 @@ const NEXT_7_DAYS = Array.from({ length: 7 }, (_, i) => {
 })
 
 const DEMO_CURRENT_DATE = getMumbaiTodayString()
-const SALON_IMAGE_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80"
-
 function getServicePrice(service: Service) {
   return service.final_price || service.discounted_price || service.price
 }
 
 function SafeImage({
   src,
-  fallback = SALON_IMAGE_FALLBACK,
   alt,
   className,
 }: {
   src?: string
-  fallback?: string
   alt: string
   className?: string
 }) {
-  const resolvedSrc = src || fallback
-
   return (
-    <SafeImageContent
-      key={resolvedSrc}
-      src={resolvedSrc}
+    <GlowImageFallback
+      src={src}
       alt={alt}
+      name={alt}
       className={className}
+      sizes="(min-width: 1024px) 960px, 100vw"
     />
-  )
-}
-
-function SafeImageContent({
-  src,
-  alt,
-  className,
-}: {
-  src?: string
-  alt: string
-  className?: string
-}) {
-  const [loaded, setLoaded] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const objectFit = className?.includes("object-contain") ? "object-contain" : "object-cover"
-
-  if (failed || !src) {
-    return <SalonImageFallback alt={alt} className={className} />
-  }
-
-  return (
-    <div className={cn("relative overflow-hidden", className)}>
-      {!loaded && <SalonImageFallback alt={alt} className="absolute inset-0" />}
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        sizes="(min-width: 1024px) 960px, 100vw"
-        className={cn(
-          objectFit,
-          "transition-opacity duration-300",
-          loaded ? "opacity-100" : "opacity-0"
-        )}
-        onLoad={() => setLoaded(true)}
-        onError={() => setFailed(true)}
-      />
-    </div>
-  )
-}
-
-function SalonImageFallback({
-  alt,
-  className,
-}: {
-  alt: string
-  className?: string
-}) {
-  return (
-    <div
-      className={cn(
-        "flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,#fff1f5,transparent_32%),linear-gradient(135deg,#fff8f5,#f7e8ff_58%,#fdf2f8)] text-gray-800",
-        className
-      )}
-      aria-label={alt || "GlowGo salon image fallback"}
-      role="img"
-    >
-      <div className="flex flex-col items-center gap-2 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/85 text-glowgo-pink shadow-sm">
-          <Sparkles className="h-5 w-5" />
-        </span>
-        <span className="max-w-36 px-3 text-xs font-semibold uppercase text-gray-500">
-          GlowGo salon
-        </span>
-      </div>
-    </div>
   )
 }
 
@@ -248,13 +179,12 @@ function SalonDetailContent({
   )
 
   const allImages = useMemo(() => {
-    const list = [
+    const list = cleanGlowImageUrls([
       salon.cover_url || salon.cover_image,
       ...(salon.images || []),
       ...(salon.gallery || []),
-    ].filter(Boolean) as string[]
-    const unique = Array.from(new Set(list.map((img) => img.trim()).filter(Boolean)))
-    return unique.length > 0 ? unique : [SALON_IMAGE_FALLBACK]
+    ])
+    return list
   }, [salon])
 
   const serviceCategories = useMemo(() => {
@@ -298,11 +228,11 @@ function SalonDetailContent({
   }
 
   return (
-    <div className="overflow-x-clip pt-16 pb-24 lg:pb-0">
+    <GlowAppShell className="pb-24 lg:pb-0">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
         <Link
           href="/explore"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#ead8c5] bg-white/80 px-4 text-sm font-semibold text-[#6f5d56] transition-colors hover:text-[#201717]"
         >
           <ChevronLeft className="w-4 h-4" />
           Back to Explore
@@ -378,7 +308,7 @@ function SalonDetailContent({
             </Tabs>
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="hidden lg:col-span-1 lg:block">
             <BookingPanel
               salon={salon}
               services={services}
@@ -400,7 +330,14 @@ function SalonDetailContent({
           </div>
         </div>
       </div>
-    </div>
+
+      <GlowBookingBottomSheet
+        label={`Book smart at ${salon.name}`}
+        detail="Review services, trust status, and capacity-aware slots."
+        actionLabel="Book Smart"
+        onAction={() => router.push(`/booking/${salon.id}`)}
+      />
+    </GlowAppShell>
   )
 }
 
@@ -430,16 +367,17 @@ function GallerySection({
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-[16/9] sm:aspect-[2/1] rounded-2xl overflow-hidden bg-gray-100">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.6rem] border border-[#ead8c5] bg-[#fff2ea] shadow-[0_24px_80px_rgba(45,29,24,0.10)] sm:aspect-[2/1]">
         <SafeImage
           src={images[selectedImage] || images[0]}
           alt="Salon"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/42 via-transparent to-transparent" />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger className="absolute bottom-4 right-4 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-xl text-sm font-medium text-gray-900 hover:bg-white transition-colors shadow-lg">
-            View Gallery
+          <DialogTrigger className="absolute bottom-4 right-3 min-h-11 rounded-full bg-white/90 px-3 py-2 text-sm font-semibold text-[#201717] shadow-lg backdrop-blur-sm transition-colors hover:bg-white sm:right-4 sm:px-4">
+            <span className="sm:hidden">Gallery</span>
+            <span className="hidden sm:inline">View Gallery</span>
           </DialogTrigger>
           <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95 border-0">
             <DialogHeader className="sr-only">
@@ -456,7 +394,7 @@ function GallerySection({
                   <button
                     type="button"
                     onClick={() => goToImage(-1)}
-                    className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+                    className="absolute left-4 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
                     aria-label="Previous gallery image"
                   >
                     <ChevronLeft className="h-5 w-5" />
@@ -464,7 +402,7 @@ function GallerySection({
                   <button
                     type="button"
                     onClick={() => goToImage(1)}
-                    className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+                    className="absolute right-4 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
                     aria-label="Next gallery image"
                   >
                     <ChevronRight className="h-5 w-5" />
@@ -477,7 +415,7 @@ function GallerySection({
                     key={i}
                     onClick={() => setSelectedImage(i)}
                     className={cn(
-                      "w-16 h-12 rounded-lg overflow-hidden border-2 transition-all",
+                      "h-12 w-16 overflow-hidden rounded-xl border-2 transition-all",
                       i === selectedImage ? "border-white opacity-100" : "border-transparent opacity-60 hover:opacity-80"
                     )}
                   >
@@ -490,14 +428,14 @@ function GallerySection({
         </Dialog>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
         {images.map((img, i) => (
           <button
             key={i}
             onClick={() => setSelectedImage(i)}
             className={cn(
-              "shrink-0 w-20 h-16 rounded-xl overflow-hidden border-2 transition-all",
-              i === selectedImage ? "border-glowgo-pink ring-1 ring-glowgo-pink" : "border-gray-200 hover:border-gray-300"
+              "h-16 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all",
+              i === selectedImage ? "border-[#d7b982] ring-1 ring-[#d7b982]" : "border-[#ead8c5] hover:border-[#d7b982]"
             )}
           >
             <SafeImage src={img} alt="" className="w-full h-full object-cover" />
@@ -574,19 +512,19 @@ function SalonInfoSection({
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${salon.name} ${salon.address} ${salon.area} ${salon.city}`)}`
 
   return (
-    <div>
+    <div className="rounded-[1.35rem] border border-[#ead8c5] bg-white/88 p-5 shadow-[0_18px_60px_rgba(45,29,24,0.07)] backdrop-blur-xl">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{salon.name}</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#201717] sm:text-4xl">{salon.name}</h1>
             {salon.featured && (
-              <Badge className="bg-purple-100 text-purple-700 border-0">
+              <Badge className="rounded-full border border-[#d8ccff] bg-[#f5f1ff] text-[#6550a8]">
                 <Sparkles className="w-3 h-3 mr-1" />
                 Featured
               </Badge>
             )}
           </div>
-          {salon.tagline && <p className="text-gray-500 mt-1 text-base">{salon.tagline}</p>}
+          {salon.tagline && <p className="mt-2 text-base text-[#6f5d56]">{salon.tagline}</p>}
         </div>
 
         <div className="flex items-center gap-2">
@@ -595,10 +533,10 @@ function SalonInfoSection({
             onClick={handleFavorite}
             title={user ? "Save this salon in the current demo browser" : "Sign in to save salons"}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all",
+              "flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-all",
               isFavorited
                 ? "border-red-200 bg-red-50 text-red-500"
-                : "border-gray-200 text-gray-600 hover:border-gray-300"
+                : "border-[#ead8c5] bg-white text-[#6f5d56] hover:border-[#d7b982]"
             )}
           >
             <Heart className={cn("w-4 h-4", isFavorited && "fill-red-500")} />
@@ -607,7 +545,7 @@ function SalonInfoSection({
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 transition-all"
+            className="flex min-h-11 items-center gap-1.5 rounded-full border border-[#ead8c5] bg-white px-4 text-sm font-semibold text-[#6f5d56] transition-all hover:border-[#d7b982]"
           >
             <Share2 className="w-4 h-4" />
             {shareStatus || "Share"}
@@ -615,11 +553,11 @@ function SalonInfoSection({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 mt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={onShowReviews}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-yellow-50 transition-colors hover:bg-yellow-100 cursor-pointer"
+          className="flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full bg-[#fff8dc] px-3 py-1 transition-colors hover:bg-[#fff3c2]"
           aria-label="Jump to salon reviews"
         >
           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -630,15 +568,15 @@ function SalonInfoSection({
         <button
           type="button"
           onClick={onShowLocation}
-          className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 cursor-pointer"
+          className="flex min-h-10 cursor-pointer items-center gap-1 rounded-full px-3 py-1 text-sm text-[#6f5d56] transition-colors hover:bg-[#fffdf9] hover:text-[#201717]"
           aria-label="Jump to salon location"
         >
           <MapPin className="w-4 h-4 text-glowgo-pink" />
           {salon.area}, {salon.city}
         </button>
 
-        <div className="flex items-center gap-1 text-sm text-gray-500">
-          <Clock className="w-4 h-4 text-glowgo-pink" />
+        <div className="flex min-h-10 items-center gap-1 rounded-full bg-[#fffdf9] px-3 text-sm text-[#6f5d56]">
+          <Clock className="w-4 h-4 text-[#8f6b25]" />
           {salon.working_hours_json?.monday?.open && salon.working_hours_json?.monday?.close ? (
             <>{formatTime(salon.working_hours_json.monday.open)} - {formatTime(salon.working_hours_json.monday.close)}</>
           ) : (
@@ -674,23 +612,23 @@ function SalonInfoSection({
 
       <TrustPassportMini salon={salon} className="mt-4" />
 
-      <div className="mt-5 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+      <div className="mt-5 rounded-2xl border border-[#f0e1ce] bg-[#fffdf9] p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-900">Contact {salon.name}</p>
-            <p className="text-xs text-gray-500">Use demo contact actions or open the address in Google Maps.</p>
+            <p className="text-sm font-semibold text-[#201717]">Contact {salon.name}</p>
+            <p className="text-xs text-[#6f5d56]">Use demo contact actions or open the address in Google Maps.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <a
               href={`tel:${salon.phone}`}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition-all hover:border-gray-300"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#ead8c5] bg-white px-4 text-sm font-semibold text-[#4b3a36] transition-all hover:border-[#d7b982]"
             >
               <Phone className="h-4 w-4 text-glowgo-pink" />
               Call
             </a>
             <a
               href={`mailto:${salon.email}`}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition-all hover:border-gray-300"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#ead8c5] bg-white px-4 text-sm font-semibold text-[#4b3a36] transition-all hover:border-[#d7b982]"
             >
               <Mail className="h-4 w-4 text-glowgo-pink" />
               Email
@@ -699,7 +637,7 @@ function SalonInfoSection({
               href={mapsHref}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm text-white transition-all hover:bg-gray-800"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#201717] px-4 text-sm font-semibold text-white transition-all hover:bg-[#352520]"
             >
               <MapPin className="h-4 w-4" />
               Open Maps

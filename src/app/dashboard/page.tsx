@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { StatCard } from "@/components/dashboard/stat-card"
+import { GlowCard, GlowMetricCard } from "@/components/glow-ui"
 import { cn, formatDate, formatTime, formatPrice, getInitials, getStatusColor } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
 import { useDemoBookings } from "@/lib/demo-bookings"
@@ -28,50 +28,50 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="premium-card overflow-hidden p-5 sm:p-6">
+      <GlowCard className="overflow-hidden p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Badge className="mb-3 border-0 bg-glowgo-gold/20 text-amber-700">Customer Trust Passport</Badge>
-            <h1 className="text-2xl font-bold text-gray-950">Welcome back, {firstName}.</h1>
-            <p className="text-sm text-gray-600 mt-1">Track requests, compare trusted salons, and keep your beauty plan organized.</p>
+            <Badge className="mb-3 rounded-full border border-[#e3c87b] bg-[#fff8dc] text-[#7d5b17]">Customer Trust Passport</Badge>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#201717]">Welcome back, {firstName}.</h1>
+            <p className="mt-1 text-sm text-[#6f5d56]">Track requests, compare trusted salons, and keep your beauty plan organized.</p>
           </div>
           <Link href="/explore">
-            <Button className="premium-button min-h-11 rounded-2xl">
+            <Button className="min-h-11 rounded-full bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)]">
               <Sparkles className="w-4 h-4 mr-1.5" />
               Book a Salon
             </Button>
           </Link>
         </div>
-      </div>
+      </GlowCard>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard
-          icon={Calendar}
+        <GlowMetricCard
+          icon={<Calendar className="h-5 w-5" />}
           label="Total Bookings"
           value={bookings.length}
-          iconBg="bg-glowgo-pink/10"
-          iconColor="text-glowgo-pink"
+          detail="All demo requests"
+          tone="rose"
         />
-        <StatCard
-          icon={Calendar}
+        <GlowMetricCard
+          icon={<Calendar className="h-5 w-5" />}
           label="Upcoming"
           value={upcomingBookings}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-500"
+          detail="Pending, confirmed, rescheduled"
+          tone="gold"
         />
-        <StatCard
-          icon={Heart}
+        <GlowMetricCard
+          icon={<Heart className="h-5 w-5" />}
           label="Favorites"
           value={favoriteIds.length}
-          iconBg="bg-red-50"
-          iconColor="text-red-400"
+          detail="Saved salons"
+          tone="lavender"
         />
-        <StatCard
-          icon={MessageSquare}
+        <GlowMetricCard
+          icon={<MessageSquare className="h-5 w-5" />}
           label="Reviews Written"
           value={reviewCount}
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-500"
+          detail="Demo-local feedback"
+          tone="green"
         />
       </div>
 

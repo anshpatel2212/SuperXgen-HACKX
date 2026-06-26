@@ -21,6 +21,7 @@ import {
   Percent, Loader2, Lightbulb, Tag
 } from "lucide-react"
 import Link from "next/link"
+import { GlowCard } from "@/components/glow-ui"
 
 export default function OwnerDashboardPage() {
   const { user, isLoading } = useAuth()
@@ -67,17 +68,17 @@ export default function OwnerDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="premium-card p-5 sm:p-6">
+      <GlowCard className="p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-          <Badge className="mb-3 border-0 bg-violet-50 text-violet-700">Owner operations cockpit</Badge>
-          <h1 className="text-xl font-semibold text-gray-950">
-            Welcome back, <span className="text-pink-600">{user?.full_name?.split(" ")[0] || "Owner"}</span>
+          <Badge className="mb-3 rounded-full border border-[#d8ccff] bg-[#f5f1ff] text-[#6550a8]">Salon Autopilot</Badge>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#201717]">
+            Welcome back, <span className="text-[#b71b62]">{user?.full_name?.split(" ")[0] || "Owner"}</span>
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[#6f5d56]">
             {ownerSalon.name} · {ownerSalon.area} · <span className={trustColor}>Trust Score: {m.trust_score}/100</span>
           </p>
-          <p className="mt-2 text-xs text-gray-500">GlowGo can help generate weekly slots and guide setup for salon teams.</p>
+          <p className="mt-2 text-xs text-[#6f5d56]">Non-technical controls for verification, today&apos;s bookings, slots, services, reviews, and AI helper tasks.</p>
           </div>
           <div className="flex gap-2">
           <Link href="/owner/insights">
@@ -92,7 +93,29 @@ export default function OwnerDashboardPage() {
           </Link>
           </div>
         </div>
-      </div>
+      </GlowCard>
+
+      <GlowCard className="p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8f6b25]">Setup checklist</p>
+            <h2 className="mt-1 text-lg font-semibold text-[#201717]">Publish-ready operations</h2>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Verification", ownerSalon.verified ? "Demo verified" : "Draft / incomplete"],
+              ["Slots", `${m.slot_utilization_rate}% utilization`],
+              ["Services", `${m.total_services} active`],
+              ["Reviews", `${m.total_reviews} synced`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-[#ead8c5] bg-[#fffdf9] px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#927d74]">{label}</p>
+                <p className="mt-1 text-sm font-semibold text-[#201717]">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </GlowCard>
 
       {/* Calculated Metrics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -221,7 +244,7 @@ export default function OwnerDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={m.revenue_over_time.length > 0 ? m.revenue_over_time : [{ date: 'No data', amount: 0 }]}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} interval={6} />
@@ -276,7 +299,7 @@ export default function OwnerDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={m.services_distribution.length > 0 ? m.services_distribution : [{ name: 'No data', count: 0 }]}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                   <XAxis dataKey="name" tick={{ fontSize: 9 }} tickLine={false} />

@@ -1,14 +1,17 @@
-import Link from "next/link"
-import { Sparkles, Globe, MessageCircle, Video, Camera, Mail, Phone, MapPin } from "lucide-react"
+"use client"
 
-const QUICK_LINKS = [
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Camera, Globe, Mail, MapPin, MessageCircle, Phone, ShieldCheck, Sparkles, Video } from "lucide-react"
+
+const quickLinks = [
   { href: "/explore", label: "Explore Salons" },
   { href: "/ai-assistant", label: "AI Assistant" },
   { href: "/dashboard/bookings", label: "My Bookings" },
-  { href: "/dashboard/preferences", label: "Beauty Profile" },
+  { href: "/owner", label: "Salon Autopilot" },
 ]
 
-const CATEGORIES = [
+const categories = [
   { href: "/explore?category=bridal", label: "Bridal" },
   { href: "/explore?category=facial", label: "Facial" },
   { href: "/explore?category=haircut", label: "Haircut" },
@@ -18,46 +21,55 @@ const CATEGORIES = [
 ]
 
 export function Footer() {
+  const pathname = usePathname()
+  if (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/owner") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/forgot-password")
+  ) {
+    return null
+  }
+
   return (
-    <footer className="border-t border-rose-100 bg-rose-50/50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer className="border-t border-[#31231f] bg-[#201717] text-[#fffaf5]">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid gap-9 sm:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1fr]">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-glowgo-pink to-glowgo-lavender">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-lg font-bold">
-                <span className="gradient-text">GlowGo</span>
-                <span className="text-gray-700"> Mumbai</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff8dc] text-[#8f6b25]">
+                <Sparkles className="h-4 w-4" />
               </span>
+              <span className="text-lg font-semibold">GlowGo Afterglow OS</span>
             </Link>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              AI-powered beauty salon marketplace connecting you with the best salons and services across Mumbai. Your
-              perfect look, just a tap away.
+            <p className="max-w-sm text-sm leading-6 text-[#cbbab4]">
+              Beauty OS for verified Mumbai salons and smart bookings, with trust passports, capacity-aware slots,
+              and salon operations in one demo platform.
             </p>
-            <div className="flex gap-3">
-              <span className="cursor-not-allowed text-gray-300" aria-label="Instagram coming after the demo" title="Social channels coming after the demo">
-                <Camera className="w-5 h-5" />
+            <div className="flex gap-3 text-[#806b63]">
+              <span className="cursor-not-allowed" aria-label="Instagram coming after the demo" title="Social channels coming after the demo">
+                <Camera className="h-5 w-5" />
               </span>
-              <span className="cursor-not-allowed text-gray-300" aria-label="Facebook coming after the demo" title="Social channels coming after the demo">
-                <Globe className="w-5 h-5" />
+              <span className="cursor-not-allowed" aria-label="Facebook coming after the demo" title="Social channels coming after the demo">
+                <Globe className="h-5 w-5" />
               </span>
-              <span className="cursor-not-allowed text-gray-300" aria-label="Community channel coming after the demo" title="Social channels coming after the demo">
-                <MessageCircle className="w-5 h-5" />
+              <span className="cursor-not-allowed" aria-label="Community channel coming after the demo" title="Social channels coming after the demo">
+                <MessageCircle className="h-5 w-5" />
               </span>
-              <span className="cursor-not-allowed text-gray-300" aria-label="YouTube coming after the demo" title="Social channels coming after the demo">
-                <Video className="w-5 h-5" />
+              <span className="cursor-not-allowed" aria-label="YouTube coming after the demo" title="Social channels coming after the demo">
+                <Video className="h-5 w-5" />
               </span>
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Quick Links</h3>
+            <h3 className="mb-4 text-sm font-semibold text-white">Product</h3>
             <ul className="space-y-3">
-              {QUICK_LINKS.map((link) => (
+              {quickLinks.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                  <Link href={link.href} className="text-sm text-[#cbbab4] transition-colors hover:text-white">
                     {link.label}
                   </Link>
                 </li>
@@ -66,11 +78,11 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Categories</h3>
+            <h3 className="mb-4 text-sm font-semibold text-white">Categories</h3>
             <ul className="space-y-3">
-              {CATEGORIES.map((link) => (
+              {categories.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                  <Link href={link.href} className="text-sm text-[#cbbab4] transition-colors hover:text-white">
                     {link.label}
                   </Link>
                 </li>
@@ -79,37 +91,39 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Contact</h3>
+            <h3 className="mb-4 text-sm font-semibold text-white">Mumbai Trust Desk</h3>
             <ul className="space-y-3">
-              <li className="flex items-center gap-2 text-sm text-gray-500">
-                <MapPin className="w-4 h-4 text-glowgo-pink shrink-0" />
+              <li className="flex items-center gap-2 text-sm text-[#cbbab4]">
+                <MapPin className="h-4 w-4 shrink-0 text-[#f4b740]" />
                 Mumbai, Maharashtra, India
               </li>
               <li>
-                <a href="tel:+919876543210" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                  <Phone className="w-4 h-4 text-glowgo-pink shrink-0" />
+                <a href="tel:+919876543210" className="flex items-center gap-2 text-sm text-[#cbbab4] transition-colors hover:text-white">
+                  <Phone className="h-4 w-4 shrink-0 text-[#f4b740]" />
                   +91 98765 43210
                 </a>
               </li>
               <li>
-                <a href="mailto:hello@glowgo.in" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                  <Mail className="w-4 h-4 text-glowgo-pink shrink-0" />
+                <a href="mailto:hello@glowgo.in" className="flex items-center gap-2 text-sm text-[#cbbab4] transition-colors hover:text-white">
+                  <Mail className="h-4 w-4 shrink-0 text-[#f4b740]" />
                   hello@glowgo.in
                 </a>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-[#cbbab4]">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-[#f4b740]" />
+                Demo trust status, not a production license.
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-rose-100 pt-6 sm:flex-row">
-          <p className="text-xs text-gray-400">
-            &copy; {new Date().getFullYear()} GlowGo Mumbai. All rights reserved. Made with love for Mumbai.
-          </p>
-          <div className="flex gap-4 text-xs">
-            <Link href="/terms" className="text-gray-400 hover:text-gray-700">Terms</Link>
-            <Link href="/privacy" className="text-gray-400 hover:text-gray-700">Privacy</Link>
-            <Link href="/verification-policy" className="text-gray-400 hover:text-gray-700">Verification</Link>
-            <Link href="/cancellation-policy" className="text-gray-400 hover:text-gray-700">Cancellation</Link>
+        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-[#9f8981] sm:flex-row sm:items-center sm:justify-between">
+          <p>&copy; {new Date().getFullYear()} GlowGo Mumbai. All rights reserved.</p>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/terms" className="hover:text-white">Terms</Link>
+            <Link href="/privacy" className="hover:text-white">Privacy</Link>
+            <Link href="/verification-policy" className="hover:text-white">Verification</Link>
+            <Link href="/cancellation-policy" className="hover:text-white">Cancellation</Link>
           </div>
         </div>
       </div>
