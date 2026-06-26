@@ -17,6 +17,7 @@ import { DEMO_ACCOUNTS } from "@/config/demo-auth"
 import { useDemoSalonStatuses } from "@/lib/demo-salon-status"
 import { useDemoReviews } from "@/lib/use-demo-reviews"
 import Link from "next/link"
+import { GlowCard } from "@/components/glow-ui"
 
 const DEMO_PLATFORM_METRICS = getPlatformMetrics()
 
@@ -26,21 +27,26 @@ export default function AdminDashboardPage() {
   const { reviews } = useDemoReviews()
   const pendingApprovals = salons.filter(s => s.status === "pending").length
   const visibleReviews = reviews.filter((review) => review.status === "approved" && !review.is_moderated)
+  const usersByRole = {
+    customer: DEMO_ACCOUNTS.filter((account) => account.user.role === "customer"),
+    owner: DEMO_ACCOUNTS.filter((account) => account.user.role === "owner"),
+    admin: DEMO_ACCOUNTS.filter((account) => account.user.role === "admin"),
+  }
 
   return (
     <div className="space-y-6">
-      <div className="premium-card p-5 sm:p-6">
+      <GlowCard className="p-5 sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-          <Badge className="mb-3 border-0 bg-emerald-50 text-emerald-700">Trust command center</Badge>
-          <h1 className="text-2xl font-bold text-gray-950">Admin Dashboard</h1>
-          <p className="text-gray-600 text-sm">Moderate verification, reviews, personas, and demo marketplace health.</p>
+          <Badge className="mb-3 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">Trust/moderation command center</Badge>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#201717]">Admin Dashboard</h1>
+          <p className="text-sm text-[#6f5d56]">Moderate verification, reviews, personas, and demo marketplace health.</p>
           </div>
           <Badge variant="outline" className="w-fit gap-1 bg-white">
             <Sparkles className="w-3 h-3" /> Demo seed snapshot
           </Badge>
         </div>
-      </div>
+      </GlowCard>
 
       {/* Platform Metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -117,6 +123,23 @@ export default function AdminDashboardPage() {
 
       {/* Detail Cards */}
       <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#8f6b25]" /> Users grouped by role
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-3">
+            {Object.entries(usersByRole).map(([role, accounts]) => (
+              <div key={role} className="rounded-2xl border border-[#ead8c5] bg-[#fffdf9] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#927d74]">{role}</p>
+                <p className="mt-2 text-2xl font-semibold text-[#201717]">{accounts.length}</p>
+                <p className="mt-1 text-xs text-[#6f5d56]">{accounts.map((account) => account.user.full_name.split(" ")[0]).join(", ")}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">

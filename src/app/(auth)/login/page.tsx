@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { DEMO_ACCOUNTS } from "@/config/demo-auth"
 import { useAuth } from "@/lib/auth-context"
+import { GlowAppShell } from "@/components/glow-ui"
 import {
   getPostAuthDestination,
   getSignupHref,
@@ -63,36 +64,34 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="min-h-screen flex mumbai-afterglow">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-glowgo-pink/30 via-transparent to-glowgo-lavender/30" />
+    <GlowAppShell className="flex min-h-screen">
+      <div className="relative hidden overflow-hidden bg-[#201717] lg:flex lg:w-[52%]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(244,183,64,0.22),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(167,139,250,0.18),transparent_28%)]" />
         <div className="relative z-10 flex flex-col justify-center px-12">
           <div className="flex items-center gap-3 mb-8">
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-glowgo-pink to-glowgo-lavender shadow-lg">
-              <Sparkles className="w-6 h-6 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fff8dc] text-[#8f6b25] shadow-lg">
+              <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">
-                <span className="gradient-text">GlowGo</span>
-              </h1>
-              <p className="text-sm text-gray-500">Mumbai</p>
+              <h1 className="text-2xl font-semibold text-white">GlowGo Afterglow OS</h1>
+              <p className="text-sm text-[#cbbab4]">Mumbai</p>
             </div>
           </div>
-          <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-4">
+          <h2 className="mb-4 text-5xl font-semibold leading-tight tracking-tight text-white">
             Demo the Beauty OS for
             <br />
-            <span className="gradient-text">verified Mumbai salons</span>
+            <span className="text-[#f4b740]">verified Mumbai salons</span>
           </h2>
-          <p className="text-lg text-gray-600 max-w-md">
+          <p className="max-w-md text-lg leading-8 text-[#cbbab4]">
             Use seeded customer, owner, and admin personas to explore trust-first discovery, smart bookings, and salon operations.
           </p>
           <div className="mt-12 space-y-4">
             {["Trust Passport before booking", "Smart capacity-aware time blocks", "Owner and admin demo workflows"].map((text) => (
               <div key={text} className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-sm">
-                  <ShieldCheck className="w-4 h-4 text-glowgo-pink" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 shadow-sm">
+                  <ShieldCheck className="w-4 h-4 text-[#f4b740]" />
                 </div>
-                <span className="text-sm text-gray-700">{text}</span>
+                <span className="text-sm text-[#fffaf5]">{text}</span>
               </div>
             ))}
           </div>
@@ -100,13 +99,13 @@ function LoginPageContent() {
       </div>
 
       <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_24px_70px_rgba(17,24,39,0.10)] backdrop-blur-xl sm:p-8">
+        <div className="w-full max-w-md rounded-[1.6rem] border border-[#ead8c5] bg-white/90 p-5 shadow-[0_28px_90px_rgba(45,29,24,0.12)] backdrop-blur-xl sm:p-8">
           <div className="text-center mb-8">
-            <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-glowgo-pink to-rose-500 text-white">
+            <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#201717] text-[#f4b740]">
               <Sparkles className="h-5 w-5" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Sign in to GlowGo</h2>
-            <p className="text-sm text-gray-500 mt-1">Use demo accounts for judging.</p>
+            <h2 className="text-2xl font-semibold text-[#201717]">Sign in to GlowGo</h2>
+            <p className="mt-1 text-sm text-[#6f5d56]">Use demo accounts for judging.</p>
           </div>
 
           {visibleError && (
@@ -116,8 +115,8 @@ function LoginPageContent() {
             </div>
           )}
 
-          <div className="mb-5 rounded-2xl border border-glowgo-border bg-glowgo-soft/70 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase text-gray-700">Seeded demo accounts</p>
+          <div className="mb-5 rounded-2xl border border-[#ead8c5] bg-[#fffdf9] p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#7d5b17]">Seeded demo accounts</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {DEMO_ACCOUNTS.map((account) => (
                 <button
@@ -128,13 +127,13 @@ function LoginPageContent() {
                     setPassword(account.password)
                     setError("")
                   }}
-                  className="min-h-11 rounded-xl border border-white bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:border-glowgo-pink hover:text-glowgo-pink"
+                  className="min-h-11 rounded-full border border-[#ead8c5] bg-white px-3 py-2 text-xs font-semibold text-[#4b3a36] shadow-sm transition-colors hover:border-[#d7b982] hover:text-[#b71b62]"
                 >
                   {account.label}
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-[11px] text-gray-500">Select a role, then sign in with the filled credentials.</p>
+            <p className="mt-2 text-[11px] text-[#6f5d56]">Select a role, then sign in with the filled credentials.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -186,7 +185,7 @@ function LoginPageContent() {
 
             <Button
               type="submit"
-              className="w-full premium-button h-11 rounded-xl"
+              className="h-11 w-full rounded-full bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)] text-white"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -250,6 +249,6 @@ function LoginPageContent() {
           </p>
         </div>
       </div>
-    </div>
+    </GlowAppShell>
   )
 }

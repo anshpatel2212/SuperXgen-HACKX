@@ -52,18 +52,18 @@ export default function OwnerLayout({
 
   return (
     <RoleGuard requiredRole="owner">
-      <div className="flex min-h-screen bg-background">
-        <aside className="hidden w-60 shrink-0 border-r bg-background md:block">
+      <div className="flex min-h-screen bg-[#fffaf5] text-[#201717]">
+        <aside className="hidden w-64 shrink-0 border-r border-[#31231f] bg-[#201717] md:block">
           <OwnerSidebar />
         </aside>
 
         <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-glowgo-border bg-white/85 px-4 backdrop-blur-md">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[#ead8c5] bg-white/88 px-4 backdrop-blur-xl">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger className="inline-flex items-center justify-center rounded-lg size-9 hover:bg-muted hover:text-foreground transition-colors md:hidden">
               <Menu className="size-4" />
             </SheetTrigger>
-            <SheetContent side="left" className="w-60 p-0">
+            <SheetContent side="left" className="w-64 border-[#31231f] bg-[#201717] p-0">
               <OwnerSidebar onNavClick={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>

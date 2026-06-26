@@ -41,17 +41,17 @@ export function DashboardSidebar({ isOpen, onToggle, userName = "Priya Sharma", 
 
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-100 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto",
+          "fixed left-0 top-0 z-50 flex h-full w-64 flex-col border-r border-[#31231f] bg-[#201717] text-[#fffaf5] transition-transform duration-300 lg:static lg:min-h-screen lg:h-auto lg:z-auto lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-50">
+        <div className="flex items-center justify-between border-b border-white/10 p-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-glowgo-pink to-glowgo-lavender">
-              <Sparkles className="w-3.5 h-3.5 text-white" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff8dc] text-[#8f6b25]">
+              <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <span className="font-bold text-sm">
-              <span className="gradient-text">GlowGo</span>
+            <span className="text-sm font-semibold">
+              GlowGo
             </span>
           </Link>
           <Button variant="ghost" size="icon-xs" onClick={onToggle} className="lg:hidden">
@@ -59,7 +59,7 @@ export function DashboardSidebar({ isOpen, onToggle, userName = "Priya Sharma", 
           </Button>
         </div>
 
-        <div className="p-4 border-b border-gray-50">
+        <div className="border-b border-white/10 p-4">
           <div className="flex items-center gap-3">
             <Avatar>
               <AvatarImage src={userAvatar || ""} alt={userName} />
@@ -68,8 +68,8 @@ export function DashboardSidebar({ isOpen, onToggle, userName = "Priya Sharma", 
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
-              <p className="text-xs text-gray-500">Customer</p>
+              <p className="truncate text-sm font-semibold text-white">{userName}</p>
+              <p className="text-xs text-[#cbbab4]">Customer</p>
             </div>
           </div>
         </div>
@@ -86,23 +86,23 @@ export function DashboardSidebar({ isOpen, onToggle, userName = "Priya Sharma", 
                   if (window.innerWidth < 1024) onToggle()
                 }}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  "flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold transition-all",
                   isActive
-                    ? "bg-gradient-to-r from-glowgo-pink/10 to-glowgo-lavender/10 text-glowgo-pink"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    ? "bg-[#fff8dc] text-[#7d5b17]"
+                    : "text-[#cbbab4] hover:bg-white/10 hover:text-white"
                 )}
               >
-                <Icon className={cn("w-4 h-4", isActive && "text-glowgo-pink")} />
+                <Icon className="w-4 h-4" />
                 {item.label}
               </Link>
             )
           })}
         </nav>
 
-        <div className="p-3 border-t border-gray-50 space-y-1">
+        <div className="space-y-1 border-t border-white/10 p-3">
           <Link
-            href="/dashboard/preferences"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all"
+            href="/dashboard/settings"
+            className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold text-[#cbbab4] transition-all hover:bg-white/10 hover:text-white"
           >
             <Settings className="w-4 h-4" />
             Settings
@@ -110,7 +110,7 @@ export function DashboardSidebar({ isOpen, onToggle, userName = "Priya Sharma", 
           <button
             type="button"
             onClick={logout}
-            className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all"
+            className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold text-[#cbbab4] transition-all hover:bg-red-500/10 hover:text-red-200"
           >
             <LogOut className="w-4 h-4" />
             Logout

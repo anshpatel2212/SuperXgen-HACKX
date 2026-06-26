@@ -3,7 +3,6 @@
 import { Suspense, useState, useMemo } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
 import {
   Sparkles, ChevronLeft, ChevronRight, Clock, MapPin,
   CheckCircle2, Home, Tag,
@@ -32,6 +31,7 @@ import { useAuth } from "@/lib/auth-context"
 import { getLoginHref, getRoleHome } from "@/lib/auth-routing"
 import { isPublicSalon } from "@/lib/public-salons"
 import { PolicyNotice, TrustPassport, TrustPassportMini } from "@/components/shared/trust-passport"
+import { GlowAppShell, GlowCard, GlowImageFallback } from "@/components/glow-ui"
 import type { Offer } from "@/types"
 
 function getNext7Days() {
@@ -47,7 +47,6 @@ function getNext7Days() {
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-const SALON_LOGO_FALLBACK = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200&q=80"
 
 export default function BookingPage() {
   return (
@@ -258,7 +257,7 @@ function BookingPageContent() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-glowgo-pink/5 via-glowgo-cream to-glowgo-lavender/5">
+      <GlowAppShell className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-md text-center animate-scale-in">
           <div className="flex justify-center mb-6">
             <div className="relative">
@@ -274,7 +273,7 @@ function BookingPageContent() {
           <p className="text-gray-500 mb-6">
             {salon.name} has received your appointment request and can now confirm it.
           </p>
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6 text-left space-y-2">
+          <GlowCard className="mb-6 space-y-2 p-4 text-left">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">Salon</span>
               <span className="font-medium text-gray-900">{salon.name}</span>
@@ -302,10 +301,10 @@ function BookingPageContent() {
               <span className="text-gray-500">Amount Due</span>
               <span className="font-semibold text-gray-900">{formatPrice(finalAmount)}</span>
             </div>
-          </div>
+          </GlowCard>
           <div className="flex flex-col gap-3">
             <Link href="/dashboard/bookings">
-              <Button className="w-full bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm">
+              <Button className="min-h-11 w-full rounded-full bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)] text-white hover:opacity-90 shadow-sm">
                 View My Bookings
               </Button>
             </Link>
@@ -316,60 +315,63 @@ function BookingPageContent() {
             </Link>
           </div>
         </div>
-      </div>
+      </GlowAppShell>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-glowgo-pink/5 via-glowgo-cream to-glowgo-lavender/5">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <GlowAppShell>
+      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3 mb-8">
           <Link href={`/salon/${salon.id}`}>
-            <Button variant="ghost" size="icon-sm">
+            <Button variant="ghost" size="icon-sm" className="min-h-11 min-w-11 rounded-full">
               <ChevronLeft className="w-5 h-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Book Appointment</h1>
-            <p className="text-sm text-gray-500">{salon.name}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8f6b25]">GlowGo smart booking</p>
+            <h1 className="text-2xl font-semibold text-[#201717]">Book Appointment</h1>
+            <p className="text-sm text-[#6f5d56]">{salon.name}</p>
           </div>
         </div>
 
-        <div className="flex items-center justify-center mb-8">
+        <GlowCard className="mb-6 p-4">
+        <div className="flex items-center justify-center">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
               <div
                 className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all",
-                  step > s && "bg-green-500 text-white",
-                  step === s && "bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white shadow-md",
-                  step < s && "bg-gray-100 text-gray-400"
+                  step > s && "bg-emerald-600 text-white",
+                  step === s && "bg-[#201717] text-[#f4b740] shadow-md",
+                  step < s && "bg-[#f5eadb] text-[#9f8981]"
                 )}
               >
                 {step > s ? <Check className="w-4 h-4" /> : s}
               </div>
               {s < 3 && (
-                <div className={cn("w-16 sm:w-24 h-0.5 mx-1", step > s ? "bg-green-500" : "bg-gray-200")} />
+                <div className={cn("mx-1 h-0.5 w-14 sm:w-24", step > s ? "bg-emerald-600" : "bg-[#ead8c5]")} />
               )}
             </div>
           ))}
         </div>
 
-        <div className="flex items-center justify-center gap-6 mb-8 text-xs text-gray-500">
-          <span className={cn(step === 1 && "text-glowgo-pink font-medium")}>Select Service</span>
-          <span className={cn(step === 2 && "text-glowgo-pink font-medium")}>Date & Time</span>
-          <span className={cn(step === 3 && "text-glowgo-pink font-medium")}>Review & Confirm</span>
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[11px] leading-tight text-[#6f5d56] sm:flex sm:items-center sm:justify-center sm:gap-6 sm:text-xs">
+          <span className={cn(step === 1 && "font-semibold text-[#b71b62]")}>Select Service</span>
+          <span className={cn(step === 2 && "font-semibold text-[#b71b62]")}>Date & Time</span>
+          <span className={cn(step === 3 && "font-semibold text-[#b71b62]")}>Review & Confirm</span>
         </div>
+        </GlowCard>
 
         {step === 1 && (
           <div className="space-y-4 animate-fade-in">
             <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <Image
-                src={salon.logo_url || SALON_LOGO_FALLBACK}
+              <GlowImageFallback
+                src={salon.logo_url || salon.cover_image}
                 alt={salon.name}
-                width={48}
-                height={48}
-                className="w-12 h-12 rounded-lg object-cover"
+                name={salon.name}
+                className="h-12 w-12 rounded-xl"
+                sizes="48px"
               />
               <div>
                 <h3 className="font-semibold text-gray-900">{salon.name}</h3>
@@ -406,7 +408,7 @@ function BookingPageContent() {
                           : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
                       )}
                     >
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className="font-medium text-gray-900">{service.name}</h4>
@@ -422,7 +424,7 @@ function BookingPageContent() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{service.description}</p>
+                          <p className="mt-0.5 line-clamp-2 text-sm text-gray-500">{service.description}</p>
                           <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
@@ -430,7 +432,7 @@ function BookingPageContent() {
                             </span>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
+                        <div className="shrink-0 text-left sm:text-right">
                           <p className="font-semibold text-gray-900">
                             {service.discounted_price ? formatPrice(service.discounted_price) : formatPrice(service.price)}
                           </p>
@@ -449,7 +451,7 @@ function BookingPageContent() {
               <Button
                 disabled={!selectedServiceId}
                 onClick={() => setStep(2)}
-                className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm"
+                className="min-h-11 rounded-full bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)] text-white hover:opacity-90 shadow-sm"
               >
                 Continue
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -533,7 +535,7 @@ function BookingPageContent() {
                         disabled={!selectedDate}
                         onClick={() => setSelectedTime(time)}
                         className={cn(
-                          "py-2 px-2 rounded-lg border text-sm font-medium transition-all",
+                          "min-h-11 rounded-full border px-2 py-2 text-sm font-medium transition-all",
                           isSelected
                             ? "border-glowgo-pink bg-glowgo-pink/5 text-glowgo-pink ring-1 ring-glowgo-pink/20"
                             : "border-gray-100 bg-white text-gray-700 hover:border-gray-200",
@@ -575,8 +577,8 @@ function BookingPageContent() {
               </div>
             )}
 
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={() => setStep(1)}>
+            <div className="flex justify-between gap-3 pt-4">
+              <Button variant="outline" onClick={() => setStep(1)} className="min-h-11 rounded-full">
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Back
               </Button>
@@ -588,7 +590,7 @@ function BookingPageContent() {
                   (isHomeService && homeAddress.trim().length < 10)
                 }
                 onClick={() => setStep(3)}
-                className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm"
+                className="min-h-11 rounded-full bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)] text-white hover:opacity-90 shadow-sm"
               >
                 Continue
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -604,12 +606,12 @@ function BookingPageContent() {
                 <h3 className="font-semibold text-gray-900">Booking Summary</h3>
 
                 <div className="flex items-center gap-3 pb-4 border-b border-gray-50">
-                  <Image
-                    src={salon.logo_url || SALON_LOGO_FALLBACK}
+                  <GlowImageFallback
+                    src={salon.logo_url || salon.cover_image}
                     alt={salon.name}
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 rounded-lg object-cover"
+                    name={salon.name}
+                    className="h-10 w-10 rounded-xl"
+                    sizes="40px"
                   />
                   <div>
                     <p className="font-medium text-gray-900">{salon.name}</p>
@@ -836,7 +838,7 @@ function BookingPageContent() {
             )}
 
             <div className="sticky bottom-3 z-20 -mx-1 flex justify-between gap-3 rounded-2xl border border-glowgo-border bg-white/95 p-3 shadow-[0_18px_50px_rgba(17,24,39,0.12)] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
-              <Button variant="outline" onClick={() => setStep(2)}>
+              <Button variant="outline" onClick={() => setStep(2)} className="min-h-11 rounded-full">
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Back
               </Button>
@@ -861,6 +863,6 @@ function BookingPageContent() {
           </div>
         )}
       </div>
-    </div>
+    </GlowAppShell>
   )
 }

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog"
 import { getCancellationEligibility } from "@/services/cancellation"
 import { reserveDemoSlot } from "@/lib/demo-slots"
+import { GlowCard, GlowEmptyState } from "@/components/glow-ui"
 import type { BookingStatus, Booking } from "@/types"
 
 const FILTERS = [
@@ -35,6 +36,12 @@ interface UndoMetadata {
   previousStatus: BookingStatus
   timestamp: number
   slotId: string | null
+}
+
+function canOpenCancellation(booking: Booking) {
+  if (!["confirmed", "pending"].includes(booking.status)) return false
+  const appointmentStart = new Date(`${booking.booking_date}T${booking.booking_time}:00`)
+  return appointmentStart.getTime() > Date.now()
 }
 
 export default function BookingsPage() {
@@ -177,7 +184,7 @@ export default function BookingsPage() {
 
         {/* Undo banner */}
         {undoBooking && (
-          <div className="flex items-center justify-between gap-4 rounded-xl bg-gray-900 text-white px-4 py-2 text-sm shadow-md animate-slide-in">
+          <div className="flex items-center justify-between gap-4 rounded-full bg-[#201717] px-4 py-2 text-sm text-white shadow-md animate-slide-in">
             <span className="text-xs font-medium">Booking cancelled.</span>
             <button
               onClick={handleUndo}
@@ -222,26 +229,20 @@ export default function BookingsPage() {
       )}
 
       {filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="flex justify-center mb-4">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-gray-100">
-              <Calendar className="w-6 h-6 text-gray-400" />
-            </div>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">No bookings found</h3>
-          <p className="text-sm text-gray-500 mt-1 mb-6">
-            {searchQuery
-              ? "Try a different search term."
-              : "You haven't made any bookings yet."}
-          </p>
-          {!searchQuery && (
-            <Link href="/explore">
-              <Button className="bg-gradient-to-r from-glowgo-pink to-glowgo-lavender text-white hover:opacity-90 shadow-sm">
-                Book Your First Salon
-              </Button>
-            </Link>
-          )}
-        </div>
+        <GlowEmptyState
+          icon={<Calendar className="h-6 w-6" />}
+          title="No bookings found"
+          copy={searchQuery ? "Try a different search term." : "You have not made any bookings yet."}
+          action={
+            !searchQuery ? (
+              <Link href="/explore">
+                <Button className="min-h-11 rounded-full bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)] text-white">
+                  Book Your First Salon
+                </Button>
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
           {filtered.map((booking) => (
@@ -249,7 +250,7 @@ export default function BookingsPage() {
               key={booking.id}
               booking={booking}
               onCancel={
-                ["confirmed", "pending"].includes(booking.status) && cancellingId !== booking.id
+                canOpenCancellation(booking) && cancellingId !== booking.id
                   ? handleCancelClick
                   : undefined
               }
@@ -273,7 +274,7 @@ export default function BookingsPage() {
             const eligibility = getCancellationEligibility(cancelTarget)
             return (
               <div className="space-y-4 my-3 text-sm text-gray-700">
-                <div className="rounded-xl bg-gray-50 p-3.5 space-y-2 border border-gray-100">
+                <GlowCard className="space-y-2 p-3.5">
                   <div>
                     <span className="text-xs text-gray-400 block font-medium uppercase tracking-wider">Salon</span>
                     <span className="font-semibold text-gray-900">{cancelTarget.salon?.name}</span>
@@ -294,7 +295,7 @@ export default function BookingsPage() {
                       <span className="font-medium text-gray-900">{formatDate(cancelTarget.created_at)}</span>
                     </div>
                   </div>
-                </div>
+                </GlowCard>
 
                 {/* Cancellation Policy Eligibility Status */}
                 <div className={cn(

@@ -1430,14 +1430,14 @@ export function OnboardingWizard() {
   return (
     <div className="max-w-4xl mx-auto pb-20 md:pb-0">
       {/* Progress */}
-      <div className="premium-card mb-6 p-4 sm:p-5">
+      <div className="mb-6 rounded-[1.35rem] border border-[#ead8c5] bg-white/88 p-4 shadow-[0_18px_60px_rgba(45,29,24,0.07)] backdrop-blur-xl sm:p-5">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-500">Step {step + 1} of {STEPS.length}</span>
-          <span className="text-sm font-medium text-pink-600">{Math.round(((step + 1) / STEPS.length) * 100)}% Complete</span>
+          <span className="text-sm text-[#6f5d56]">Step {step + 1} of {STEPS.length}</span>
+          <span className="text-sm font-semibold text-[#b71b62]">{Math.round(((step + 1) / STEPS.length) * 100)}% Complete</span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 overflow-hidden rounded-full bg-[#f4eadc]">
           <div
-            className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-500"
+            className="h-full rounded-full bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)] transition-all duration-500"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
           />
         </div>
@@ -1450,7 +1450,7 @@ export function OnboardingWizard() {
       </div>
 
       {/* Step indicators */}
-      <div className="hidden md:flex items-center gap-2 mb-8 overflow-x-auto pb-2">
+      <div className="mb-8 hidden items-center gap-2 overflow-x-auto pt-1 pb-2 md:flex">
         {STEPS.map((s, i) => {
           const Icon = s.icon
           const isActive = i === step
@@ -1460,12 +1460,12 @@ export function OnboardingWizard() {
               key={s.id}
               type="button"
               onClick={() => { if (i < step) setStep(i) }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all shrink-0 ${
+              className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-all ${
                 isActive
-                  ? "bg-pink-100 text-pink-700 ring-2 ring-pink-300"
+                  ? "bg-[#fff8dc] text-[#7d5b17] ring-2 ring-[#d7b982]"
                   : isComplete
-                    ? "bg-green-50 text-green-700 cursor-pointer"
-                    : "bg-gray-50 text-gray-400"
+                    ? "bg-emerald-50 text-emerald-700 cursor-pointer"
+                    : "bg-[#f4eadc] text-[#9f8981]"
               }`}
             >
               {isComplete ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
@@ -1476,32 +1476,32 @@ export function OnboardingWizard() {
       </div>
 
       {/* Content */}
-      <Card className="premium-card border-glowgo-border">
+      <Card className="rounded-[1.35rem] border-[#ead8c5] bg-white/90 shadow-[0_18px_60px_rgba(45,29,24,0.07)]">
         <CardContent className="p-6 md:p-8">
           {renderStep()}
         </CardContent>
       </Card>
 
       {/* Navigation */}
-      <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-between border-t border-glowgo-border bg-white/95 px-4 py-3 shadow-[0_-12px_35px_rgba(17,24,39,0.10)] backdrop-blur md:static md:mt-6 md:border-0 md:bg-transparent md:px-0 md:py-0 md:shadow-none">
+      <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-between border-t border-[#ead8c5] bg-white/95 px-4 py-3 shadow-[0_-12px_35px_rgba(45,29,24,0.10)] backdrop-blur md:static md:mt-6 md:border-0 md:bg-transparent md:px-0 md:py-0 md:shadow-none">
         <Button
           variant="outline"
           onClick={handleBack}
           disabled={step === 0}
-          className="gap-2"
+          className="min-h-11 rounded-full gap-2"
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </Button>
 
         {step < STEPS.length - 1 ? (
-          <Button onClick={handleNext} className="gap-2 bg-pink-600 hover:bg-pink-700">
+          <Button onClick={handleNext} className="min-h-11 rounded-full gap-2 bg-[#201717] text-[#f4b740] hover:bg-[#352520]">
             Next <ChevronRight className="w-4 h-4" />
           </Button>
         ) : (
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+            className="min-h-11 rounded-full gap-2 bg-[linear-gradient(135deg,#db2777,#f43f5e_55%,#a78bfa)]"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? "Submitting..." : "Submit for Verification"}
